@@ -1,7 +1,13 @@
 package com.example.wms.entities;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.net.ProtocolFamily;
+
+@Getter
+@Setter
 @Entity
 @Table(name="roles")
 public class Role {
@@ -13,4 +19,6 @@ public class Role {
     @Enumerated(EnumType.STRING)
     @Column(unique = true)
     private RoleName name;
+
+
 }

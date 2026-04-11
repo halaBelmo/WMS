@@ -14,11 +14,13 @@ import com.example.wms.entities.Company;
 public class User{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     private String name;
 
     private String password;
+
+    private String email;
 
     @ManyToOne
     @JoinColumn(name = "role_id")
