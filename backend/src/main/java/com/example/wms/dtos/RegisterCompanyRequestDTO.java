@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 
 
-public class RegisterCompanyRequest {
+public class RegisterCompanyRequestDTO {
 
     private String companyName;
     private String address;
@@ -19,4 +19,6 @@ public class RegisterCompanyRequest {
     private String ownerName;
     private String ownerEmail;
     private String password;
+
+    
 }

@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.wms.dtos.LoginRequest;
-import com.example.wms.dtos.RegisterCompanyRequest;
+import com.example.wms.dtos.LoginRequestDTO;
+import com.example.wms.dtos.RegisterCompanyRequestDTO;
 import com.example.wms.services.AuthService;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class AuthController {
 
     @PostMapping("/register-company")
     public ResponseEntity<Map<String, Object>> register(
-            @RequestBody RegisterCompanyRequest request
+            @RequestBody RegisterCompanyRequestDTO request
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -33,7 +33,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(
-            @RequestBody LoginRequest request
+            @RequestBody LoginRequestDTO request
     ) {
         return ResponseEntity.ok(authService.login(request));
     }

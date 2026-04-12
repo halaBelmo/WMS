@@ -2,14 +2,15 @@ package com.example.wms.services;
 
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.wms.dtos.LoginRequest;
-import com.example.wms.dtos.RegisterCompanyRequest;
+import com.example.wms.dtos.LoginRequestDTO;
+import com.example.wms.dtos.RegisterCompanyRequestDTO;
 import com.example.wms.entities.Company;
 import com.example.wms.entities.Role;
 import com.example.wms.entities.RoleName;
@@ -37,10 +38,12 @@ public class AuthService {
     private final UserMapper userMapper;
     private final CompanyMapper companyMapper;
 
+    @Autowired
+    private JWTService jwtService;
     // =====================================================
     // REGISTER COMPANY + OWNER (ONLY)
     // =====================================================
-    public Map<String, Object> registerCompany(RegisterCompanyRequest req) {
+    public Map<String, Object> registerCompany(RegisterCompanyRequestDTO req) {
 
         // 1. CREATE COMPANY
         Company company = new Company();
@@ -62,10 +65,8 @@ public class AuthService {
         owner.setPassword(passwordEncoder.encode(req.getPassword()));
         owner.setRole(ownerRole);
         owner.setCompany(company);
-
         userRepository.save(owner);
 
-        // 4. RESPONSE DTOs (NO ENTITY LEAK)
         return Map.of(
                 "message", "Company and Owner created successfully",
                 "company", companyMapper.toDTO(company),
@@ -73,19 +74,26 @@ public class AuthService {
         );
     }
 
-    public Map<String, Object> login(LoginRequest request) {
+    public Map<String, Object> login(LoginRequestDTO request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
                         request.getPassword()
                 )
         );
+         
+        
+
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        String token = jwtService.generateToken(
+               user
+        );
 
         return Map.of(
                 "message", "Login successful",
+                "token", token,
                 "user", userMapper.toDTO(user)
         );
     }
