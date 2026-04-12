@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from "axios";
 import FormField from "../components/FormField";
 import Button from "../components/Button";
 import styles from "./LoginPage.module.css";
@@ -11,16 +12,40 @@ export default function LoginPage({ onGoToSignup }) {
   const handleChange = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => setLoading(false), 1500);
+
+    try {
+      const response = await axios.post("http://localhost:8080/api/auth/login", {
+        email: form.email,
+        password: form.password,
+      });
+
+      console.log("Login success:", response.data);
+
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
+
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", form.email);
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
+
+      alert("Connexion réussie");
+    } catch (error) {
+      console.error("Login error:", error.response?.data || error.message);
+      alert("Email ou mot de passe incorrect");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className={styles.pageWrap}>
       <div className={styles.card}>
-
         <div className={styles.badge}>
           <span className={styles.badgeDot} />
           Accès utilisateur
@@ -38,12 +63,6 @@ export default function LoginPage({ onGoToSignup }) {
             placeholder="ahmed@exemple.com"
             value={form.email}
             onChange={handleChange("email")}
-            icon={
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="4" width="20" height="16" rx="2" />
-                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-              </svg>
-            }
             required
           />
 
@@ -53,12 +72,6 @@ export default function LoginPage({ onGoToSignup }) {
             placeholder="••••••••"
             value={form.password}
             onChange={handleChange("password")}
-            icon={
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-            }
             required
           />
 
@@ -83,10 +96,6 @@ export default function LoginPage({ onGoToSignup }) {
         </form>
 
         <div className={styles.infoBox}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={styles.infoIcon}>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4M12 8h.01" />
-          </svg>
           <p>
             Vous n'avez pas de compte ? Contactez l'administrateur de votre
             entreprise pour recevoir vos accès.
