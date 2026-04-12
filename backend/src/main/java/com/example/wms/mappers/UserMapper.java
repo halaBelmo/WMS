@@ -5,8 +5,6 @@ import com.example.wms.entities.User;
 import org.springframework.stereotype.Component;
 @Component
 public class UserMapper {
-
-
         public UserDTO toDTO(User user) {
             if (user == null) return null;
 
