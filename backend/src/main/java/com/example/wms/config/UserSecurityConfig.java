@@ -50,6 +50,7 @@ public class UserSecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    
     // Authentication manager 
     @Bean
     public AuthenticationManager authenticationManager(
