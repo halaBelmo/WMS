@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 public class RoleInitializer {
 
     private final RoleRepository roleRepository;
-
+    
     @Bean
     CommandLineRunner initRoles() {
         return args -> {
