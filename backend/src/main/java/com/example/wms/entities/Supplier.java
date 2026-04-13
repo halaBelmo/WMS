@@ -33,7 +33,9 @@ public class Supplier {
     private String contact;
     private String phone;
     private String email;
-
+ 
+    
+    // one supplier → many products
     @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL)
     private List<Product> products;
 }

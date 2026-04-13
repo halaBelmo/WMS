@@ -57,6 +57,7 @@ public class SupplierController {
         return ResponseEntity.ok(supplierService.update(id, request));
     }
 
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
@@ -64,10 +65,12 @@ public class SupplierController {
         return ResponseEntity.noContent().build();
     }
 
+
     @GetMapping("/search")
     @PreAuthorize("hasAnyRole('ADMIN', 'MAGASINIER')")
     public ResponseEntity<List<SupplierResponseDTO>> search(
             @RequestParam String name) {
         return ResponseEntity.ok(supplierService.searchByName(name));
     }
+    
 }

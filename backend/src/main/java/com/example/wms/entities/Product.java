@@ -34,11 +34,13 @@ public class Product{
 
     private int quantiteDisponible;
 
-    
+
     
     @ManyToOne
     @JoinColumn(name = "location_id")
     private Location location;
 
-
+    @ManyToOne
+    @JoinColumn(name = "supplier_id")
+    private Supplier supplier;
 }
