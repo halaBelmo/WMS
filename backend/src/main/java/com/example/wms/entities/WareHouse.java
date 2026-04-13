@@ -16,13 +16,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-<<<<<<< HEAD
 
 import java.util.ArrayList;
 import java.util.List;
 
-=======
->>>>>>> 9dbf580a71130817753f87710d72e00b6325efe0
+
 @Entity
 @Table(name = "warehouses")
 @Getter
@@ -43,12 +41,9 @@ public class WareHouse {
     @JoinColumn(name = "company_id")
     private Company company;
 
-<<<<<<< HEAD
     @OneToMany(mappedBy = "warehouse", cascade = CascadeType.ALL)
     private List<User> users = new ArrayList<>();
 
-=======
      @OneToMany(mappedBy = "wareHouse", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Location> locations;
->>>>>>> 9dbf580a71130817753f87710d72e00b6325efe0
 }

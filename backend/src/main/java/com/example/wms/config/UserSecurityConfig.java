@@ -42,8 +42,7 @@ public class UserSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/owner/**").hasAuthority("OWNER")
-                        .anyRequest().authenticated()
+                        .requestMatchers("/api/owner/**").hasAnyAuthority("OWNER", "ADMIN")                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

@@ -30,14 +30,12 @@ public class UserManagementServiceImpl implements UserManagementService {
     private final WarehouseRepository wareHouseRepository;
 
     @Override
-    public UserDTO createUser(CreateUserRequestDTO request, String ownerEmail) {
+    public UserDTO createUser(CreateUserRequestDTO request, String currentUserEmail) {
 
-        User owner = userRepository.findByEmail(ownerEmail)
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
 
-        if (owner.getRole() == null || owner.getRole().getName() != RoleName.OWNER) {
-            throw new RuntimeException("Access denied: only OWNER can create users");
-        }
+        RoleName currentRole = currentUser.getRole().getName();
 
         if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new RuntimeException("Email is required");
@@ -47,22 +45,50 @@ public class UserManagementServiceImpl implements UserManagementService {
             throw new RuntimeException("Password is required");
         }
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
-        }
-
         if (request.getRoleName() == null) {
             throw new RuntimeException("Role is required");
         }
 
-        if (request.getRoleName() == RoleName.OWNER) {
-            throw new RuntimeException("OWNER cannot create another OWNER");
+        if (request.getWarehouseId() == null) {
+            throw new RuntimeException("Warehouse is required");
+        }
+
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
+
+        Company company = currentUser.getCompany();
+
+        WareHouse warehouse = wareHouseRepository.findById(request.getWarehouseId())
+                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
+
+        if (!warehouse.getCompany().getId().equals(company.getId())) {
+            throw new RuntimeException("Warehouse does not belong to your company");
+        }
+
+        if (currentRole == RoleName.OWNER) {
+            if (request.getRoleName() == RoleName.OWNER) {
+                throw new RuntimeException("OWNER cannot create another OWNER");
+            }
+        } else if (currentRole == RoleName.ADMIN) {
+            if (request.getRoleName() != RoleName.MAGASINIER &&
+                    request.getRoleName() != RoleName.RESPONSABLE_STOCK) {
+                throw new RuntimeException("ADMIN can only create MAGASINIER or RESPONSABLE_STOCK");
+            }
+
+            if (currentUser.getWarehouse() == null) {
+                throw new RuntimeException("ADMIN is not assigned to any warehouse");
+            }
+
+            if (!warehouse.getId().equals(currentUser.getWarehouse().getId())) {
+                throw new RuntimeException("ADMIN can only create users in his own warehouse");
+            }
+        } else {
+            throw new RuntimeException("Access denied");
         }
 
         Role role = roleRepository.findByName(request.getRoleName())
                 .orElseThrow(() -> new RuntimeException("Role not found"));
-
-        Company company = owner.getCompany();
 
         User user = new User();
         user.setName(request.getName());
@@ -70,46 +96,49 @@ public class UserManagementServiceImpl implements UserManagementService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(role);
         user.setCompany(company);
-        if (request.getWarehouseId() == null) {
-            throw new RuntimeException("Warehouse is required");
-        }
-
-        WareHouse warehouse = wareHouseRepository.findById(request.getWarehouseId())
-                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
-
-        if (!warehouse.getCompany().getId().equals(owner.getCompany().getId())) {
-            throw new RuntimeException("Warehouse does not belong to your company");
-        }
-
         user.setWarehouse(warehouse);
 
         User savedUser = userRepository.save(user);
-
         company.getUsers().add(savedUser);
 
         return userMapper.toDTO(savedUser);
     }
 
     @Override
-    public UserDTO updateUser(Long userId, UpdateUserRequestDTO request, String ownerEmail) {
+    public UserDTO updateUser(Long userId, UpdateUserRequestDTO request, String currentUserEmail) {
 
-        User owner = userRepository.findByEmail(ownerEmail)
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
-
-        if (owner.getRole() == null || owner.getRole().getName() != RoleName.OWNER) {
-            throw new RuntimeException("Access denied: only OWNER can update users");
-        }
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
 
         User userToUpdate = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (userToUpdate.getCompany() == null || owner.getCompany() == null ||
-                !userToUpdate.getCompany().getId().equals(owner.getCompany().getId())) {
-            throw new RuntimeException("Access denied: user does not belong to your company");
+        RoleName currentRole = currentUser.getRole().getName();
+
+        if (!userToUpdate.getCompany().getId().equals(currentUser.getCompany().getId())) {
+            throw new RuntimeException("User does not belong to your company");
         }
 
         if (userToUpdate.getRole() != null && userToUpdate.getRole().getName() == RoleName.OWNER) {
             throw new RuntimeException("OWNER cannot be modified");
+        }
+
+        if (currentRole == RoleName.ADMIN) {
+            if (currentUser.getWarehouse() == null || userToUpdate.getWarehouse() == null) {
+                throw new RuntimeException("Warehouse assignment is missing");
+            }
+
+            if (!userToUpdate.getWarehouse().getId().equals(currentUser.getWarehouse().getId())) {
+                throw new RuntimeException("ADMIN can only modify users in his own warehouse");
+            }
+
+            if (request.getRoleName() != null &&
+                    request.getRoleName() != RoleName.MAGASINIER &&
+                    request.getRoleName() != RoleName.RESPONSABLE_STOCK) {
+                throw new RuntimeException("ADMIN can only assign MAGASINIER or RESPONSABLE_STOCK");
+            }
+        } else if (currentRole != RoleName.OWNER) {
+            throw new RuntimeException("Access denied");
         }
 
         if (request.getEmail() != null && !request.getEmail().isBlank()
@@ -131,18 +160,27 @@ public class UserManagementServiceImpl implements UserManagementService {
                 throw new RuntimeException("Cannot assign OWNER role");
             }
 
+            if (currentRole == RoleName.ADMIN && request.getRoleName() == RoleName.ADMIN) {
+                throw new RuntimeException("ADMIN cannot assign ADMIN role");
+            }
+
             Role role = roleRepository.findByName(request.getRoleName())
                     .orElseThrow(() -> new RuntimeException("Role not found"));
 
             userToUpdate.setRole(role);
         }
-        if (request.getWarehouseId() != null) {
 
+        if (request.getWarehouseId() != null) {
             WareHouse warehouse = wareHouseRepository.findById(request.getWarehouseId())
                     .orElseThrow(() -> new RuntimeException("Warehouse not found"));
 
-            if (!warehouse.getCompany().getId().equals(owner.getCompany().getId())) {
+            if (!warehouse.getCompany().getId().equals(currentUser.getCompany().getId())) {
                 throw new RuntimeException("Warehouse does not belong to your company");
+            }
+
+            if (currentRole == RoleName.ADMIN &&
+                    !warehouse.getId().equals(currentUser.getWarehouse().getId())) {
+                throw new RuntimeException("ADMIN can only assign users to his own warehouse");
             }
 
             userToUpdate.setWarehouse(warehouse);
@@ -153,47 +191,76 @@ public class UserManagementServiceImpl implements UserManagementService {
     }
 
     @Override
-    public void deleteUser(Long userId, String ownerEmail) {
+    public void deleteUser(Long userId, String currentUserEmail) {
 
-        User owner = userRepository.findByEmail(ownerEmail)
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
-
-        if (owner.getRole() == null || owner.getRole().getName() != RoleName.OWNER) {
-            throw new RuntimeException("Access denied: only OWNER can delete users");
-        }
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
 
         User userToDelete = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (userToDelete.getCompany() == null || owner.getCompany() == null ||
-                !userToDelete.getCompany().getId().equals(owner.getCompany().getId())) {
-            throw new RuntimeException("Access denied: user does not belong to your company");
+        RoleName currentRole = currentUser.getRole().getName();
+
+        if (!userToDelete.getCompany().getId().equals(currentUser.getCompany().getId())) {
+            throw new RuntimeException("User does not belong to your company");
         }
 
         if (userToDelete.getRole() != null && userToDelete.getRole().getName() == RoleName.OWNER) {
             throw new RuntimeException("OWNER cannot be deleted");
         }
 
-        if (userToDelete.getId().equals(owner.getId())) {
-            throw new RuntimeException("OWNER cannot delete himself");
+        if (userToDelete.getId().equals(currentUser.getId())) {
+            throw new RuntimeException("You cannot delete yourself");
+        }
+
+        if (currentRole == RoleName.ADMIN) {
+            if (currentUser.getWarehouse() == null || userToDelete.getWarehouse() == null) {
+                throw new RuntimeException("Warehouse assignment is missing");
+            }
+
+            if (!userToDelete.getWarehouse().getId().equals(currentUser.getWarehouse().getId())) {
+                throw new RuntimeException("ADMIN can only delete users in his own warehouse");
+            }
+
+            if (userToDelete.getRole().getName() != RoleName.MAGASINIER &&
+                    userToDelete.getRole().getName() != RoleName.RESPONSABLE_STOCK) {
+                throw new RuntimeException("ADMIN can only delete MAGASINIER or RESPONSABLE_STOCK");
+            }
+        } else if (currentRole != RoleName.OWNER) {
+            throw new RuntimeException("Access denied");
         }
 
         userRepository.delete(userToDelete);
     }
 
     @Override
-    public List<UserDTO> getCompanyUsers(String ownerEmail) {
+    public List<UserDTO> getCompanyUsers(String currentUserEmail) {
 
-        User owner = userRepository.findByEmail(ownerEmail)
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+        User currentUser = userRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
 
-        if (owner.getRole() == null || owner.getRole().getName() != RoleName.OWNER) {
-            throw new RuntimeException("Access denied: only OWNER can view company users");
+        RoleName currentRole = currentUser.getRole().getName();
+
+        if (currentRole == RoleName.OWNER) {
+            return currentUser.getCompany().getUsers()
+                    .stream()
+                    .map(userMapper::toDTO)
+                    .toList();
         }
 
-        return owner.getCompany().getUsers()
-                .stream()
-                .map(userMapper::toDTO)
-                .toList();
+        if (currentRole == RoleName.ADMIN) {
+            if (currentUser.getWarehouse() == null) {
+                throw new RuntimeException("ADMIN is not assigned to any warehouse");
+            }
+
+            return currentUser.getCompany().getUsers()
+                    .stream()
+                    .filter(user -> user.getWarehouse() != null)
+                    .filter(user -> user.getWarehouse().getId().equals(currentUser.getWarehouse().getId()))
+                    .map(userMapper::toDTO)
+                    .toList();
+        }
+
+        throw new RuntimeException("Access denied");
     }
 }
