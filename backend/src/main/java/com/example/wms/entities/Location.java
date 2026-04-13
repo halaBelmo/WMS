@@ -38,7 +38,7 @@ public class Location {
     @ManyToOne
     private WareHouse wareHouse;
 
-    @OneToMany(mappedBy = "locations")
+    @OneToMany(mappedBy = "location")
     private java.util.List<Product> products;
 
 
