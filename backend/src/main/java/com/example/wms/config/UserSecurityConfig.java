@@ -42,6 +42,7 @@ public class UserSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/owner/**").hasAuthority("OWNER")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -73,4 +74,5 @@ public class UserSecurityConfig {
     ) throws Exception {
         return config.getAuthenticationManager();
     }
+
 }

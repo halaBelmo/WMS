@@ -13,6 +13,14 @@ public class UserMapper {
             dto.setName(user.getName());
             dto.setEmail(user.getEmail());
             dto.setRole(user.getRole().getName().name());
+            if (user.getWarehouse() != null) {
+                dto.setWarehouseName(user.getWarehouse().getName());
+            }
+            if (user.getCompany() != null) {
+                dto.setCompanyName(user.getCompany().getName());
+            }
+
+
 
             return dto;
         }

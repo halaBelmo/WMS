@@ -45,27 +45,40 @@ public class AuthService {
     // =====================================================
     public Map<String, Object> registerCompany(RegisterCompanyRequestDTO req) {
 
-        // 1. CREATE COMPANY
+        System.out.println("REGISTER COMPANY SERVICE REACHED");
+
+        if (companyRepository.findByEmail(req.getEmail()).isPresent()) {
+            throw new RuntimeException("Company email already exists");
+        }
+
+        if (userRepository.findByEmail(req.getOwnerEmail()).isPresent()) {
+            throw new RuntimeException("Owner email already exists");
+        }
+
         Company company = new Company();
         company.setName(req.getCompanyName());
         company.setAddress(req.getAddress());
         company.setEmail(req.getEmail());
         company.setPhone(req.getPhone());
 
-        companyRepository.save(company);
+        company = companyRepository.save(company);
 
-        // 2. GET OWNER ROLE
         Role ownerRole = roleRepository.findByName(RoleName.OWNER)
                 .orElseThrow(() -> new RuntimeException("OWNER role not found"));
 
-        // 3. CREATE OWNER USER
         User owner = new User();
         owner.setName(req.getOwnerName());
         owner.setEmail(req.getOwnerEmail());
         owner.setPassword(passwordEncoder.encode(req.getPassword()));
         owner.setRole(ownerRole);
         owner.setCompany(company);
-        userRepository.save(owner);
+
+        owner = userRepository.save(owner);
+
+        company.setOwner(owner);
+        company.getUsers().add(owner);
+
+        company = companyRepository.save(company);
 
         return Map.of(
                 "message", "Company and Owner created successfully",
@@ -73,7 +86,6 @@ public class AuthService {
                 "owner", userMapper.toDTO(owner)
         );
     }
-
     public Map<String, Object> login(LoginRequestDTO request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(

@@ -6,6 +6,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "warehouses")
 @Getter
@@ -24,4 +27,8 @@ public class WareHouse {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
     private Company company;
+
+    @OneToMany(mappedBy = "warehouse", cascade = CascadeType.ALL)
+    private List<User> users = new ArrayList<>();
+
 }

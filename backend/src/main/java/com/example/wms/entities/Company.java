@@ -35,5 +35,8 @@ public class Company {
 
     @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WareHouse> warehouses = new ArrayList<>();
-
+    // il faut que chaque Company sache : qui est son owner
+    @OneToOne
+    @JoinColumn(name = "owner_id", unique = true)
+    private User owner;
 }
