@@ -34,7 +34,7 @@ public class Product{
 
     private int quantiteDisponible;
 
-
+    
     
     @ManyToOne
     @JoinColumn(name = "location_id")
