@@ -11,6 +11,9 @@ import com.example.wms.entities.Product;
 public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByLocation_WarehouseId(Long warehouseId);
     List<Product> findByLocation(Location location);
-    Optional<Product> findByIdAndLocation_WarehouseId(Long id, Long warehouseId);
+    Optional<Product> findByIdAndLocation_Warehouse_Id(Long id, Long warehouseId);
     boolean existsByReferenceAndLocation_WarehouseId(String reference, Long warehouseId);
+    List<Product> findByLocation_Warehouse_Id(Long warehouseId);
+
+
 }

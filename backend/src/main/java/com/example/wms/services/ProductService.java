@@ -64,7 +64,7 @@ public class ProductService {
         ensureOwnerOrAdmin(currentUser);
 
         Location location = getManagedLocation(request.getEmplacementId(), currentUser);
-        Product product = productRepository.findByIdAndLocation_WarehouseId(id, location.getWarehouse().getId())
+        Product product = productRepository.findByIdAndLocation_Warehouse_Id(id, location.getWarehouse().getId())
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         Supplier supplier = getSupplierFromCompany(request.getFournisseurId(), currentUser.getCompany());
 
@@ -84,26 +84,32 @@ public class ProductService {
         return productMapper.toDTO(productRepository.save(product));
     }
 
-    public void delete(Long id, Long wareHouseId, String currentUserEmail) {
-        User currentUser = getCurrentUser(currentUserEmail);
-        ensureOwnerOrAdmin(currentUser);
+   public void delete(Long id, String username) {
 
-        WareHouse warehouse = getManagedWarehouse(wareHouseId, currentUser);
-        Product product = productRepository.findByIdAndLocation_WarehouseId(id, warehouse.getId())
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+    User user = userRepository.findByEmail(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        productRepository.delete(product);
-    }
+    Long warehouseId = user.getWarehouse().getId();
 
-    public List<ProductResponseDTO> getByWarehouse(Long wareHouseId, String currentUserEmail) {
-        User currentUser = getCurrentUser(currentUserEmail);
-        WareHouse warehouse = getManagedWarehouse(wareHouseId, currentUser);
+    Product product = productRepository
+            .findByIdAndLocation_Warehouse_Id(id, warehouseId)
+            .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        return productRepository.findByLocation_WarehouseId(warehouse.getId())
-                .stream()
-                .map(productMapper::toDTO)
-                .toList();
-    }
+    productRepository.delete(product);
+}
+
+   public List<ProductResponseDTO> getByWarehouse(String username) {
+
+    User user = userRepository.findByEmail(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    Long warehouseId = user.getWarehouse().getId();
+
+    return productRepository.findByLocation_Warehouse_Id(warehouseId)
+            .stream()
+            .map(productMapper::toDTO)
+            .toList();
+}
 
     private User getCurrentUser(String email) {
         return userRepository.findByEmail(email)

@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.wms.dtos.ProductRequestDTO;
@@ -47,17 +46,20 @@ public class ProductController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable Long id,
-                                       @RequestParam Long wareHouseId,
-                                       Authentication authentication) {
-        productService.delete(id, wareHouseId, authentication.getName());
-        return ResponseEntity.noContent().build();
-    }
+    public ResponseEntity<Void> delete(
+        @PathVariable Long id,
+        Authentication authentication) {
 
+    productService.delete(id, authentication.getName());
+    return ResponseEntity.noContent().build();
+}
     @GetMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
-    public ResponseEntity<List<ProductResponseDTO>> getByWarehouse(@RequestParam Long wareHouseId,
-                                                                   Authentication authentication) {
-        return ResponseEntity.ok(productService.getByWarehouse(wareHouseId, authentication.getName()));
-    }
+    public ResponseEntity<List<ProductResponseDTO>> getByWarehouse(
+        Authentication authentication) {
+
+    return ResponseEntity.ok(
+            productService.getByWarehouse(authentication.getName())
+    );
+}
 }

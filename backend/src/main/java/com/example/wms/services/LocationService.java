@@ -68,29 +68,34 @@ public class LocationService {
         return locationMapper.toDTO(locationRepository.save(location));
     }
 
-    public void delete(Long id, Long wareHouseId, String currentUserEmail) {
-        User currentUser = getCurrentUser(currentUserEmail);
-        ensureOwnerOrAdmin(currentUser);
+    public void delete(Long id, String currentUserEmail) {
 
-        WareHouse managedWarehouse = getManagedWarehouse(wareHouseId, currentUser);
-        Location location = locationRepository.findByIdAndWarehouse(id, managedWarehouse)
-                .orElseThrow(() -> new RuntimeException("Location not found"));
+    User currentUser = getCurrentUser(currentUserEmail);
 
-        locationRepository.delete(location);
-    }
+    ensureOwnerOrAdmin(currentUser);
 
-    public List<LocationResponseDTO> getByWarehouse(Long wareHouseId, String currentUserEmail) {
-        User currentUser = getCurrentUser(currentUserEmail);
-        WareHouse managedWarehouse = getManagedWarehouse(wareHouseId, currentUser);
+    WareHouse managedWarehouse = currentUser.getWarehouse();
 
-        return locationRepository.findByWarehouse(managedWarehouse)
-                .stream()
-                .map(locationMapper::toDTO)
-                .toList();
-    }
+    Location location = locationRepository
+            .findByIdAndWarehouse(id, managedWarehouse)
+            .orElseThrow(() -> new RuntimeException("Location not found"));
 
-    private User getCurrentUser(String email) {
-        return userRepository.findByEmail(email)
+    locationRepository.delete(location);
+}
+   public List<LocationResponseDTO> getByWarehouse(String username) {
+
+    User user = userRepository.findByEmail(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    Long warehouseId = user.getWarehouse().getId();
+
+    return locationRepository.findByWarehouseId(warehouseId)
+            .stream()
+            .map(locationMapper::toDTO)
+            .toList();
+}
+             private User getCurrentUser(String email) {
+                 return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Current user not found"));
     }
 
@@ -127,9 +132,16 @@ public class LocationService {
         return warehouse;
     }
     
-    public LocationResponseDTO getById(Long id, Long warehouseId, String username) {
-    Location location = locationRepository.findByIdAndWarehouseId(id, warehouseId)
-            .orElseThrow(() -> new RuntimeException("Location not found"));
+   public LocationResponseDTO getById(Long id, String username) {
+
+    User user = userRepository.findByEmail(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+    Long warehouseId = user.getWarehouse().getId();
+
+    Location location = locationRepository
+            .findByIdAndWarehouseId(id, warehouseId)
+            .orElseThrow(() -> new RuntimeException("Not found"));
 
     return locationMapper.toDTO(location);
 }}

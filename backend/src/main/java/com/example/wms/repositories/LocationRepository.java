@@ -10,6 +10,7 @@ import com.example.wms.entities.WareHouse;
 
 public interface LocationRepository extends JpaRepository<Location, Long> {
     List<Location> findByWarehouse(WareHouse warehouse);
-    Optional<Location> findByIdAndWarehouse(Long id, WareHouse warehouse);
+    List<Location> findByWarehouseId(Long warehouseId);
     Optional<Location> findByIdAndWarehouseId(Long id, Long warehouseId);
+    Optional<Location> findByIdAndWarehouse(Long id, WareHouse warehouse);
 }

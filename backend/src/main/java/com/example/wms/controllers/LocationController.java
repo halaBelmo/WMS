@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.wms.dtos.LocationRequestDTO;
@@ -28,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 public class LocationController {
 
     private final LocationService locationService;
-
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
     public ResponseEntity<LocationResponseDTO> create(@RequestBody LocationRequestDTO request,
@@ -36,13 +34,14 @@ public class LocationController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(locationService.create(request, authentication.getName()));
     }
-    @GetMapping("/{id}")
-@PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
-public ResponseEntity<LocationResponseDTO> getById(@PathVariable Long id,
-                                                   @RequestParam Long warehouseId,
-                                                   Authentication authentication) {
+   @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
+    public ResponseEntity<LocationResponseDTO> getById(
+        @PathVariable Long id,
+        Authentication authentication) {
+
     return ResponseEntity.ok(
-            locationService.getById(id, warehouseId, authentication.getName())
+            locationService.getById(id, authentication.getName())
     );
 }
     @PutMapping("/{id}")
@@ -55,18 +54,21 @@ public ResponseEntity<LocationResponseDTO> getById(@PathVariable Long id,
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable Long id,
-                                       @RequestParam Long warehouseId,
-                                       Authentication authentication) {
-        locationService.delete(id, warehouseId, authentication.getName());
-        return ResponseEntity.noContent().build();
-    }
+    public ResponseEntity<Void> delete(
+        @PathVariable Long id,
+        Authentication authentication) {
 
+    locationService.delete(id, authentication.getName());
+    return ResponseEntity.noContent().build();
+}
     @GetMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
-    public ResponseEntity<List<LocationResponseDTO>> getByWarehouse(@RequestParam Long wareHouseId,
-                                                                    Authentication authentication) {
-        return ResponseEntity.ok(locationService.getByWarehouse(wareHouseId, authentication.getName()));
-    }
+    public ResponseEntity<List<LocationResponseDTO>> getByWarehouse(
+        Authentication authentication) {
+
+    return ResponseEntity.ok(
+            locationService.getByWarehouse(authentication.getName())
+    );
+}
 }
 
