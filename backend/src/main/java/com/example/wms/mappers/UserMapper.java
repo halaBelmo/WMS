@@ -20,9 +20,7 @@ public class UserMapper {
             if (user.getCompany() != null) {
                 dto.setCompanyName(user.getCompany().getName());
             }
-<<<<<<< HEAD
-=======
-            if (user.getWarehouse() != null) {
+ if (user.getWarehouse() != null) {
                 dto.setWarehouseName(user.getWarehouse().getName());
                 dto.setWarehouseId(user.getWarehouse().getId()); // add this
             }
@@ -30,7 +28,6 @@ public class UserMapper {
 
 
 
->>>>>>> fa927680a1dd60f3bb30d122615933decd33d3d1
             return dto;
         }
     }
