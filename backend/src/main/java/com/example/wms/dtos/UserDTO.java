@@ -5,12 +5,12 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UserDTO {
+public  UserDTO {
     private Long id;
     private String name;
     private String email;
     private String role;
     private String companyName;
     private String warehouseName;
-
+    private Long warehouseId; // add this
 }

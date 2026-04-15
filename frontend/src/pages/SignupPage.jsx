@@ -1,11 +1,14 @@
-import { useState } from "react";
-import axios from "axios";
+﻿import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 import FormField from "../components/FormField";
 import Button from "../components/Button";
+import api from "../services/api";
 import styles from "./SignupPage.module.css";
 
 export default function SignupPage({ onGoToLogin }) {
+  const navigate = useNavigate();
+
   const [owner, setOwner] = useState({
     firstName: "",
     lastName: "",
@@ -23,16 +26,26 @@ export default function SignupPage({ onGoToLogin }) {
   });
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleOwner = (field) => (e) =>
-    setOwner((prev) => ({ ...prev, [field]: e.target.value }));
+  const handleOwner = (field) => (event) =>
+    setOwner((prev) => ({ ...prev, [field]: event.target.value }));
 
-  const handleCompany = (field) => (e) =>
-    setCompany((prev) => ({ ...prev, [field]: e.target.value }));
+  const handleCompany = (field) => (event) =>
+    setCompany((prev) => ({ ...prev, [field]: event.target.value }));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleGoToLogin = () => {
+    if (onGoToLogin) {
+      onGoToLogin();
+      return;
+    }
+    navigate("/login");
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
       const payload = {
@@ -45,17 +58,10 @@ export default function SignupPage({ onGoToLogin }) {
         password: owner.password,
       };
 
-      const response = await axios.post(
-        "http://localhost:8080/api/auth/register-company",
-        payload
-      );
-
-      console.log("Signup success:", response.data);
-      alert("Entreprise créée avec succès");
-      onGoToLogin();
-    } catch (error) {
-      console.error("Signup error:", error.response?.data || error.message);
-      alert("Erreur lors de la création du compte");
+      await api.post("/api/auth/register-company", payload);
+      handleGoToLogin();
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || "Could not create account.");
     } finally {
       setLoading(false);
     }
@@ -68,31 +74,26 @@ export default function SignupPage({ onGoToLogin }) {
           <Logo />
           <div className={styles.badge}>
             <span className={styles.badgeDot} />
-            Compte administrateur
+            Admin account
           </div>
-          <h1 className={styles.title}>Créer votre entreprise</h1>
-          <p className={styles.subtitle}>
-            Configurez votre espace WMS et invitez votre équipe de travail.
-          </p>
+          <h1 className={styles.title}>Create your company</h1>
+          <p className={styles.subtitle}>Set up your WMS workspace.</p>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          <div className={styles.sectionHead}>
-            <span className={styles.sectionIcon}>👤</span>
-            Informations du propriétaire
-          </div>
+          <div className={styles.sectionHead}>Owner details</div>
 
           <div className={styles.grid3}>
             <FormField
-              label="Prénom"
-              placeholder="Jiara"
+              label="First name"
+              placeholder="Hamza"
               value={owner.firstName}
               onChange={handleOwner("firstName")}
               required
             />
             <FormField
-              label="Nom"
-              placeholder="Martins"
+              label="Last name"
+              placeholder="Owner"
               value={owner.lastName}
               onChange={handleOwner("lastName")}
               required
@@ -100,7 +101,7 @@ export default function SignupPage({ onGoToLogin }) {
             <FormField
               label="Email"
               type="email"
-              placeholder="hello@votresite.com"
+              placeholder="owner@company.com"
               value={owner.email}
               onChange={handleOwner("email")}
               required
@@ -109,37 +110,34 @@ export default function SignupPage({ onGoToLogin }) {
 
           <div className={styles.grid2half}>
             <FormField
-              label="Mot de passe"
+              label="Password"
               type="password"
-              placeholder="••••••••"
+              placeholder="********"
               value={owner.password}
               onChange={handleOwner("password")}
               required
             />
           </div>
 
-          <div className={styles.sectionHead}>
-            <span className={styles.sectionIcon}>🏢</span>
-            Informations de l'entreprise
-          </div>
+          <div className={styles.sectionHead}>Company details</div>
 
           <div className={styles.grid3}>
             <FormField
-              label="Nom de l'entreprise"
-              placeholder="Entrepôt Central SA"
+              label="Company name"
+              placeholder="WMS Company"
               value={company.name}
               onChange={handleCompany("name")}
               required
             />
             <FormField
-              label="Adresse"
-              placeholder="12 Rue du Commerce"
+              label="Address"
+              placeholder="12 Commerce Street"
               value={company.address}
               onChange={handleCompany("address")}
               required
             />
             <FormField
-              label="Téléphone"
+              label="Phone"
               placeholder="+212600000000"
               value={company.phone}
               onChange={handleCompany("phone")}
@@ -149,37 +147,39 @@ export default function SignupPage({ onGoToLogin }) {
 
           <div className={styles.grid3}>
             <FormField
-              label="Ville"
+              label="City"
               placeholder="Casablanca"
               value={company.city}
               onChange={handleCompany("city")}
               required
             />
             <FormField
-              label="Pays"
-              placeholder="Maroc"
+              label="Country"
+              placeholder="Morocco"
               value={company.country}
               onChange={handleCompany("country")}
               required
             />
             <FormField
-              label="Email entreprise"
+              label="Company email"
               type="email"
-              placeholder="contact@entreprise.com"
+              placeholder="contact@company.com"
               value={company.email}
               onChange={handleCompany("email")}
               required
             />
           </div>
 
+          {error ? <p className={styles.formError}>{error}</p> : null}
+
           <div className={styles.formFooter}>
             <Button type="submit" disabled={loading} fullWidth={false}>
-              {loading ? "Création en cours…" : "Créer mon entreprise →"}
+              {loading ? "Creating..." : "Create company ->"}
             </Button>
             <p className={styles.switchText}>
-              Déjà un compte ?{" "}
-              <button className={styles.switchBtn} onClick={onGoToLogin} type="button">
-                Se connecter
+              Already have an account?{" "}
+              <button className={styles.switchBtn} onClick={handleGoToLogin} type="button">
+                Sign in
               </button>
             </p>
           </div>

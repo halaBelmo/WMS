@@ -1,32 +1,44 @@
-import { useState } from "react";
-import axios from "axios";
+﻿import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import FormField from "../components/FormField";
 import Button from "../components/Button";
+import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 import styles from "./LoginPage.module.css";
 
 export default function LoginPage({ onGoToSignup }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+
   const [form, setForm] = useState({ email: "", password: "" });
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleChange = (field) => (e) =>
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem("rememberedEmail");
+    if (rememberedEmail) {
+      setForm((prev) => ({ ...prev, email: rememberedEmail }));
+      setRememberMe(true);
+    }
+  }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleChange = (field) => (event) =>
+    setForm((prev) => ({ ...prev, [field]: event.target.value }));
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
-      const response = await axios.post("http://localhost:8080/api/auth/login", {
+      const response = await api.post("/api/auth/login", {
         email: form.email,
         password: form.password,
       });
 
-      console.log("Login success:", response.data);
-
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-      }
+      login({ token: response.data.token, user: response.data.user });
 
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", form.email);
@@ -34,13 +46,22 @@ export default function LoginPage({ onGoToSignup }) {
         localStorage.removeItem("rememberedEmail");
       }
 
-      alert("Connexion réussie");
-    } catch (error) {
-      console.error("Login error:", error.response?.data || error.message);
-      alert("Email ou mot de passe incorrect");
+      const redirectTo = location.state?.from?.pathname || "/dashboard";
+      navigate(redirectTo, { replace: true });
+    } catch (requestError) {
+      setError(requestError.response?.data?.message || "Incorrect email or password.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSwitchToSignup = () => {
+    if (onGoToSignup) {
+      onGoToSignup();
+      return;
+    }
+
+    navigate("/signup");
   };
 
   return (
@@ -48,28 +69,26 @@ export default function LoginPage({ onGoToSignup }) {
       <div className={styles.card}>
         <div className={styles.badge}>
           <span className={styles.badgeDot} />
-          Accès utilisateur
+          User access
         </div>
 
-        <h1 className={styles.title}>Bienvenue</h1>
-        <p className={styles.subtitle}>
-          Connectez-vous avec les identifiants fournis par votre administrateur.
-        </p>
+        <h1 className={styles.title}>Welcome</h1>
+        <p className={styles.subtitle}>Sign in with your credentials.</p>
 
         <form className={styles.form} onSubmit={handleSubmit}>
           <FormField
-            label="Adresse email"
+            label="Email"
             type="email"
-            placeholder="ahmed@exemple.com"
+            placeholder="owner@company.com"
             value={form.email}
             onChange={handleChange("email")}
             required
           />
 
           <FormField
-            label="Mot de passe"
+            label="Password"
             type="password"
-            placeholder="••••••••"
+            placeholder="********"
             value={form.password}
             onChange={handleChange("password")}
             required
@@ -80,32 +99,33 @@ export default function LoginPage({ onGoToSignup }) {
               <input
                 type="checkbox"
                 checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
+                onChange={(event) => setRememberMe(event.target.checked)}
                 className={styles.checkbox}
               />
-              Se souvenir de moi
+              Remember me
             </label>
             <a href="#" className={styles.forgotLink}>
-              Mot de passe oublié ?
+              Forgot password?
             </a>
           </div>
 
+          {error ? <p className={styles.formError}>{error}</p> : null}
+
           <Button type="submit" disabled={loading}>
-            {loading ? "Connexion en cours…" : "Se connecter →"}
+            {loading ? "Signing in..." : "Sign in ->"}
           </Button>
         </form>
 
         <div className={styles.infoBox}>
           <p>
-            Vous n'avez pas de compte ? Contactez l'administrateur de votre
-            entreprise pour recevoir vos accès.
+            No account yet? Contact your company administrator for access.
           </p>
         </div>
 
         <p className={styles.switchText}>
-          Vous êtes un administrateur ?{" "}
-          <button className={styles.switchBtn} onClick={onGoToSignup} type="button">
-            Créer une entreprise
+          Are you an owner?{" "}
+          <button className={styles.switchBtn} onClick={handleSwitchToSignup} type="button">
+            Create your company
           </button>
         </p>
       </div>

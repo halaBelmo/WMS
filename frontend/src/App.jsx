@@ -1,15 +1,30 @@
-import { useState } from "react";
+﻿import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { useAuth } from "./context/AuthContext";
+import AppLayout from "./layouts/AppLayout";
+import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import WarehouseManagementPage from "./pages/WarehouseManagementPage";
+import UserManagementPage from "./pages/UserManagementPage";
+import AccessDeniedPage from "./pages/AccessDeniedPage";
 import "./styles/global.css";
 
-export default function App() {
-  const [page, setPage] = useState("login");
+function PublicOnlyRoute({ children }) {
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+}
+
+function AuthScreen({ page }) {
+  const navigate = useNavigate();
 
   const handleNavigate = (target) => {
     if (target === "login" || target === "signup") {
-      setPage(target);
+      navigate(`/${target}`);
     }
   };
 
@@ -18,11 +33,64 @@ export default function App() {
       <Navbar activePage={page} onNavigate={handleNavigate} />
       <div className="app-root">
         {page === "login" ? (
-          <LoginPage onGoToSignup={() => setPage("signup")} />
+          <LoginPage onGoToSignup={() => navigate("/signup")} />
         ) : (
-          <SignupPage onGoToLogin={() => setPage("login")} />
+          <SignupPage onGoToLogin={() => navigate("/login")} />
         )}
       </div>
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route
+        path="/"
+        element={<Navigate to="/dashboard" replace />}
+      />
+
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <AuthScreen page="login" />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <PublicOnlyRoute>
+            <AuthScreen page="signup" />
+          </PublicOnlyRoute>
+        }
+      />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route
+            path="/warehouses"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER"]}>
+                <WarehouseManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
+                <UserManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/access-denied" element={<AccessDeniedPage />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
 }

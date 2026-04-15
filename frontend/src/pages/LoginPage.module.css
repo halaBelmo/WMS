@@ -1,4 +1,4 @@
-.pageWrap {
+﻿.pageWrap {
   position: relative;
   width: 100%;
   max-width: 440px;
@@ -181,3 +181,10 @@
   bottom: -100px;
   left: -100px;
 }
+
+.formError {
+  color: #c0392b;
+  font-size: 13px;
+  margin-bottom: 0.8rem;
+}
+
