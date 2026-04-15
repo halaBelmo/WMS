@@ -49,27 +49,29 @@ public class UserManagementServiceImpl implements UserManagementService {
             throw new RuntimeException("Role is required");
         }
 
-        if (request.getWarehouseId() == null) {
-            throw new RuntimeException("Warehouse is required");
-        }
-
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
 
         Company company = currentUser.getCompany();
-
-        WareHouse warehouse = wareHouseRepository.findById(request.getWarehouseId())
-                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
-
-        if (!warehouse.getCompany().getId().equals(company.getId())) {
-            throw new RuntimeException("Warehouse does not belong to your company");
-        }
+        WareHouse warehouse;
 
         if (currentRole == RoleName.OWNER) {
+            if (request.getWarehouseId() == null) {
+                throw new RuntimeException("Warehouse is required");
+            }
+
+            warehouse = wareHouseRepository.findById(request.getWarehouseId())
+                    .orElseThrow(() -> new RuntimeException("Warehouse not found"));
+
+            if (!warehouse.getCompany().getId().equals(company.getId())) {
+                throw new RuntimeException("Warehouse does not belong to your company");
+            }
+
             if (request.getRoleName() == RoleName.OWNER) {
                 throw new RuntimeException("OWNER cannot create another OWNER");
             }
+
         } else if (currentRole == RoleName.ADMIN) {
             if (request.getRoleName() != RoleName.MAGASINIER &&
                     request.getRoleName() != RoleName.RESPONSABLE_STOCK) {
@@ -80,9 +82,9 @@ public class UserManagementServiceImpl implements UserManagementService {
                 throw new RuntimeException("ADMIN is not assigned to any warehouse");
             }
 
-            if (!warehouse.getId().equals(currentUser.getWarehouse().getId())) {
-                throw new RuntimeException("ADMIN can only create users in his own warehouse");
-            }
+            // Force admin warehouse, ignore request.warehouseId
+            warehouse = currentUser.getWarehouse();
+
         } else {
             throw new RuntimeException("Access denied");
         }
@@ -103,6 +105,7 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         return userMapper.toDTO(savedUser);
     }
+
 
     @Override
     public UserDTO updateUser(Long userId, UpdateUserRequestDTO request, String currentUserEmail) {
