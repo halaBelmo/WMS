@@ -30,6 +30,7 @@ public class SupplierMapper {
                 .contact(supplier.getContact())
                 .phone(supplier.getPhone())
                 .email(supplier.getEmail())
+                .companyName(supplier.getCompany() != null ? supplier.getCompany().getName() : null)
                 .build();
     }
 

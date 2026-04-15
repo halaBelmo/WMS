@@ -1,8 +1,9 @@
 package com.example.wms.mappers;
 
+import org.springframework.stereotype.Component;
+
 import com.example.wms.dtos.UserDTO;
 import com.example.wms.entities.User;
-import org.springframework.stereotype.Component;
 @Component
 public class UserMapper {
         public UserDTO toDTO(User user) {
@@ -19,9 +20,6 @@ public class UserMapper {
             if (user.getCompany() != null) {
                 dto.setCompanyName(user.getCompany().getName());
             }
-
-
-
             return dto;
         }
     }

@@ -27,7 +27,7 @@ public class WareHouseController {
 
     private final WareHouseService wareHouseService;
 
-    @PostMapping
+    @PostMapping("/")
     public ResponseEntity<WareHouseDTO> createWareHouse(@RequestBody CreateWareHouseRequestDTO request,
                                                         Authentication authentication) {
         String ownerEmail = authentication.getName();

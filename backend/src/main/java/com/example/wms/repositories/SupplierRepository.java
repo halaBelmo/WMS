@@ -1,5 +1,6 @@
 package com.example.wms.repositories;
 
+import com.example.wms.entities.Company;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,8 +11,10 @@ import com.example.wms.entities.Supplier;
 
 @Repository
 public interface SupplierRepository extends JpaRepository<Supplier, Long> {
-    Optional<Supplier> findByEmail(String email);
-    boolean existsByEmail(String email);
-    List<Supplier> findByNameContainingIgnoreCase(String name);
+    Optional<Supplier> findByIdAndCompany(Long id, Company company);
+    Optional<Supplier> findByEmailAndCompany(String email, Company company);
+    boolean existsByEmailAndCompany(String email, Company company);
+    List<Supplier> findByCompany(Company company);
+    List<Supplier> findByCompanyAndNameContainingIgnoreCase(Company company, String name);
 }
 

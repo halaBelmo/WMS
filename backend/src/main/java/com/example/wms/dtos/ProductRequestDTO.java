@@ -15,6 +15,6 @@ public class ProductRequestDTO {
     private String description;
     private String categorie;
     private int quantiteDisponible;
-    private String fournisseurId;
-    private String emplacementId;
+    private Long fournisseurId;
+    private Long emplacementId;
 }

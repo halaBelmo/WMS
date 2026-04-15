@@ -1,6 +1,8 @@
 package com.example.wms.entities;
 
+import java.util.ArrayList;
 import java.util.List;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -15,7 +17,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import java.util.ArrayList;
 
 
 @Entity
@@ -42,6 +43,6 @@ public class WareHouse {
     @OneToMany(mappedBy = "warehouse", cascade = CascadeType.ALL)
     private List<User> users = new ArrayList<>();
 
-     @OneToMany(mappedBy = "wareHouse", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "warehouse", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Location> locations;
 }
