@@ -1,7 +1,6 @@
 package com.example.wms.entities;
 
 import java.util.List;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -16,9 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.util.ArrayList;
-import java.util.List;
 
 
 @Entity
@@ -29,6 +26,7 @@ import java.util.List;
 @AllArgsConstructor
 
 public class WareHouse {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

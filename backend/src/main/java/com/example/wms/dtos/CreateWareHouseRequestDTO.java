@@ -5,6 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+
 public class CreateWareHouseRequestDTO {
     private String name;
     private String location;
