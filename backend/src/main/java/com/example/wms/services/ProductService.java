@@ -11,9 +11,9 @@ import com.example.wms.entities.Company;
 import com.example.wms.entities.Location;
 import com.example.wms.entities.Product;
 import com.example.wms.entities.RoleName;
+import com.example.wms.entities.Shelf;
 import com.example.wms.entities.Supplier;
 import com.example.wms.entities.User;
-import com.example.wms.entities.WareHouse;
 import com.example.wms.mappers.ProductMapper;
 import com.example.wms.repositories.LocationRepository;
 import com.example.wms.repositories.ProductRepository;
@@ -35,41 +35,49 @@ public class ProductService {
     private final WarehouseRepository warehouseRepository;
     private final ProductMapper productMapper;
 
-    public ProductResponseDTO create(ProductRequestDTO request, String currentUserEmail) {
-        User currentUser = getCurrentUser(currentUserEmail);
-        ensureOwnerOrAdmin(currentUser);
+    public ProductResponseDTO create(ProductRequestDTO request, String username) {
 
-        Location location = getManagedLocation(request.getEmplacementId(), currentUser);
-        Supplier supplier = getSupplierFromCompany(request.getFournisseurId(), currentUser.getCompany());
+    User user = userRepository.findByEmail(username)
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Long warehouseId = location.getWarehouse().getId();
-        if (productRepository.existsByReferenceAndLocation_WarehouseId(request.getReference(), warehouseId)) {
-            throw new RuntimeException("Product reference already exists in this warehouse");
-        }
+    Product product = new Product();
+    product.setReference(request.getReference());
+    product.setNom(request.getNom());
+    product.setDescription(request.getDescription());
+    product.setCategorie(request.getCategorie());
+    product.setQuantiteDisponible(request.getQuantiteDisponible());
 
-        Product product = new Product();
-        product.setReference(request.getReference());
-        product.setNom(request.getNom());
-        product.setDescription(request.getDescription());
-        product.setCategorie(request.getCategorie());
-        product.setQuantiteDisponible(request.getQuantiteDisponible());
-        product.setLocation(location);
-        product.setSupplier(supplier);
-
-        return productMapper.toDTO(productRepository.save(product));
+    Long locationId = request.getLocationId() != null ? request.getLocationId() : request.getEmplacementId();
+    if (locationId == null) {
+        throw new IllegalArgumentException("locationId or emplacementId is required");
     }
+    product.setLocation(locationRepository.findById(locationId)
+            .orElseThrow(() -> new RuntimeException("Location not found")));
+
+    Long supplierId = request.getFournisseurId();
+    if (supplierId == null) {
+        throw new IllegalArgumentException("fournisseurId is required");
+    }
+    product.setSupplier(supplierRepository.findById(supplierId)
+            .orElseThrow(() -> new RuntimeException("Supplier not found")));
+
+    Product saved = productRepository.save(product);
+
+    return productMapper.toDTO(saved);
+}
 
     public ProductResponseDTO update(Long id, ProductRequestDTO request, String currentUserEmail) {
         User currentUser = getCurrentUser(currentUserEmail);
         ensureOwnerOrAdmin(currentUser);
 
         Location location = getManagedLocation(request.getEmplacementId(), currentUser);
-        Product product = productRepository.findByIdAndLocation_Warehouse_Id(id, location.getWarehouse().getId())
+        Product product = productRepository.findByIdAndLocation_Shelf_Rack_Zone_Warehouse_Id(id, getWarehouseIdFromLocation(location))
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         Supplier supplier = getSupplierFromCompany(request.getFournisseurId(), currentUser.getCompany());
 
+        Long whId = getWarehouseIdFromLocation(location);
         if (!product.getReference().equals(request.getReference())
-                && productRepository.existsByReferenceAndLocation_WarehouseId(request.getReference(), location.getWarehouse().getId())) {
+                && productRepository.existsByReferenceAndLocation_WarehouseId(request.getReference(), whId)) {
             throw new RuntimeException("Product reference already exists in this warehouse");
         }
 
@@ -86,30 +94,44 @@ public class ProductService {
 
    public void delete(Long id, String username) {
 
-    User user = userRepository.findByEmail(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    Long warehouseId = user.getWarehouse().getId();
+        Long warehouseId = user.getWarehouse().getId();
 
-    Product product = productRepository
-            .findByIdAndLocation_Warehouse_Id(id, warehouseId)
-            .orElseThrow(() -> new RuntimeException("Product not found"));
+        Product product = productRepository
+                .findByIdAndLocation_Shelf_Rack_Zone_Warehouse_Id(id, warehouseId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
 
-    productRepository.delete(product);
-}
+        productRepository.delete(product);
+    }
 
-   public List<ProductResponseDTO> getByWarehouse(String username) {
 
-    User user = userRepository.findByEmail(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+ public List<ProductResponseDTO> getByWarehouse(String username) {
 
-    Long warehouseId = user.getWarehouse().getId();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-    return productRepository.findByLocation_Warehouse_Id(warehouseId)
-            .stream()
-            .map(productMapper::toDTO)
-            .toList();
-}
+        Long warehouseId = user.getWarehouse().getId();
+
+        return productRepository.findByLocation_Shelf_Rack_Zone_Warehouse_Id(warehouseId)
+                .stream()
+                .map(productMapper::toDTO)
+                .toList();
+    }
+
+    public ProductResponseDTO getById(Long id, String username) {
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Long warehouseId = user.getWarehouse().getId();
+
+        Product product = productRepository
+                .findByIdAndLocation_Shelf_Rack_Zone_Warehouse_Id(id, warehouseId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        return productMapper.toDTO(product);
+    }
 
     private User getCurrentUser(String email) {
         return userRepository.findByEmail(email)
@@ -123,31 +145,7 @@ public class ProductService {
         }
     }
 
-    private WareHouse getManagedWarehouse(Long wareHouseId, User currentUser) {
-        if (wareHouseId == null) {
-            throw new RuntimeException("Warehouse is required");
-        }
-
-        WareHouse warehouse = warehouseRepository.findById(wareHouseId)
-                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
-
-        if (warehouse.getCompany() == null || currentUser.getCompany() == null
-                || !warehouse.getCompany().getId().equals(currentUser.getCompany().getId())) {
-            throw new RuntimeException("Warehouse does not belong to your company");
-        }
-
-        if (currentUser.getRole().getName() == RoleName.ADMIN) {
-            if (currentUser.getWarehouse() == null) {
-                throw new RuntimeException("ADMIN is not assigned to any warehouse");
-            }
-
-            if (!warehouse.getId().equals(currentUser.getWarehouse().getId())) {
-                throw new RuntimeException("ADMIN can only manage products in his own warehouse");
-            }
-        }
-
-        return warehouse;
-    }
+   
 
     private Location getManagedLocation(Long locationId, User currentUser) {
         if (locationId == null) {
@@ -157,8 +155,20 @@ public class ProductService {
         Location location = locationRepository.findById(locationId)
                 .orElseThrow(() -> new RuntimeException("Location not found"));
 
-        getManagedWarehouse(location.getWarehouse().getId(), currentUser);
+        if (!getWarehouseIdFromLocation(location).equals(currentUser.getWarehouse().getId())) {
+            throw new RuntimeException("Location not in your warehouse");
+        }
         return location;
+    }
+
+    private Long getWarehouseIdFromLocation(Location location) {
+        Shelf shelf = location.getShelf();
+        if (shelf == null) throw new RuntimeException("Location has no shelf");
+        // Traverse hierarchy
+        if (shelf.getRack() == null || shelf.getRack().getZone() == null || shelf.getRack().getZone().getWarehouse() == null) {
+            throw new RuntimeException("Invalid location hierarchy");
+        }
+        return shelf.getRack().getZone().getWarehouse().getId();
     }
 
     private Supplier getSupplierFromCompany(Long supplierId, Company company) {

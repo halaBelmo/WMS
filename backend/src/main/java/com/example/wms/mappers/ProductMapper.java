@@ -9,11 +9,13 @@ import com.example.wms.entities.Product;
 public class ProductMapper {
 
     public ProductResponseDTO toDTO(Product product) {
+
         if (product == null) {
             return null;
         }
 
         ProductResponseDTO dto = new ProductResponseDTO();
+
         dto.setId(product.getId());
         dto.setReference(product.getReference());
         dto.setNom(product.getNom());
@@ -21,21 +23,28 @@ public class ProductMapper {
         dto.setCategorie(product.getCategorie());
         dto.setQuantiteDisponible(product.getQuantiteDisponible());
 
+        // Supplier
         if (product.getSupplier() != null) {
             dto.setSupplierId(product.getSupplier().getId());
             dto.setSupplierName(product.getSupplier().getName());
         }
 
+        // Location
         if (product.getLocation() != null) {
+
             dto.setLocationId(product.getLocation().getId());
             dto.setLocationName(product.getLocation().getName());
 
-            if (product.getLocation().getWarehouse() != null) {
-                dto.setWarehouseId(product.getLocation().getWarehouse().getId());
-                dto.setWarehouseName(product.getLocation().getWarehouse().getName());
-            }
+            // Warehouse traversal via shelf (future)
+            // if (product.getLocation().getShelf().getRack().getZone().getWarehouse() != null) { ... }
+            // dto.setWarehouseId(...);
         }
 
         return dto;
+    }
+
+    // OPTIONAL BUT STRONGLY RECOMMENDED
+    public Product toEntity() {
+        return new Product();
     }
 }

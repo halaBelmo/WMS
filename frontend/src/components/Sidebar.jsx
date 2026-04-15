@@ -9,6 +9,8 @@ export default function Sidebar() {
     { to: "/dashboard", label: "Dashboard", roles: ["OWNER", "ADMIN", "MAGASINIER", "RESPONSABLE_STOCK"] },
     { to: "/warehouses", label: "Warehouses", roles: ["OWNER"] },
     { to: "/users", label: "Users", roles: ["OWNER", "ADMIN"] },
+    { to: "/products", label: "Products", roles: ["ADMIN"] },
+    { to: "/locations", label: "Locations", roles: ["OWNER", "ADMIN"] },
   ];
 
   const visibleLinks = links.filter((link) => link.roles.includes(role));

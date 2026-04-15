@@ -42,7 +42,6 @@ public class WareHouseServiceImpl implements WareHouseService {
 
         WareHouse warehouse = new WareHouse();
         warehouse.setName(request.getName());
-        warehouse.setLocation(request.getLocation());
         warehouse.setCompany(company);
 
         WareHouse savedWarehouse = wareHouseRepository.save(warehouse);
@@ -74,9 +73,7 @@ public class WareHouseServiceImpl implements WareHouseService {
             warehouse.setName(request.getName());
         }
 
-        if (request.getLocation() != null && !request.getLocation().isBlank()) {
-            warehouse.setLocation(request.getLocation());
-        }
+  
 
         WareHouse updatedWarehouse = wareHouseRepository.save(warehouse);
 

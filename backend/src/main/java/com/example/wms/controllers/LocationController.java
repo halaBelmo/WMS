@@ -27,48 +27,73 @@ import lombok.RequiredArgsConstructor;
 public class LocationController {
 
     private final LocationService locationService;
+
+    // CREATE
     @PostMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
-    public ResponseEntity<LocationResponseDTO> create(@RequestBody LocationRequestDTO request,
-                                                      Authentication authentication) {
+    public ResponseEntity<LocationResponseDTO> create(
+            @RequestBody LocationRequestDTO request,
+            Authentication authentication) {
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(locationService.create(request, authentication.getName()));
     }
-   @GetMapping("/{id}")
+
+    // GET BY ID (SECURE)
+    @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
     public ResponseEntity<LocationResponseDTO> getById(
-        @PathVariable Long id,
-        Authentication authentication) {
+            @PathVariable Long id,
+            Authentication authentication) {
 
-    return ResponseEntity.ok(
-            locationService.getById(id, authentication.getName())
-    );
-}
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
-    public ResponseEntity<LocationResponseDTO> update(@PathVariable Long id,
-                                                      @RequestBody LocationRequestDTO request,
-                                                      Authentication authentication) {
-        return ResponseEntity.ok(locationService.update(id, request, authentication.getName()));
+        return ResponseEntity.ok(
+                locationService.getById(id, authentication.getName())
+        );
     }
 
+    // UPDATE
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
+    public ResponseEntity<LocationResponseDTO> update(
+            @PathVariable Long id,
+            @RequestBody LocationRequestDTO request,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                locationService.update(id, request, authentication.getName())
+        );
+    }
+
+    // DELETE
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
     public ResponseEntity<Void> delete(
-        @PathVariable Long id,
-        Authentication authentication) {
+            @PathVariable Long id,
+            Authentication authentication) {
 
-    locationService.delete(id, authentication.getName());
-    return ResponseEntity.noContent().build();
-}
+        locationService.delete(id, authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    // GET ALL FOR USER WAREHOUSE
     @GetMapping
     @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
     public ResponseEntity<List<LocationResponseDTO>> getByWarehouse(
-        Authentication authentication) {
+            Authentication authentication) {
 
-    return ResponseEntity.ok(
-            locationService.getByWarehouse(authentication.getName())
-    );
-}
-}
+        return ResponseEntity.ok(
+                locationService.getByWarehouse(authentication.getName())
+        );
+    }
 
+    @GetMapping("/shelf/{shelfId}")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
+    public ResponseEntity<List<LocationResponseDTO>> getByShelf(
+            @PathVariable Long shelfId,
+            Authentication authentication) {
+
+        return ResponseEntity.ok(
+                locationService.getByShelf(shelfId, authentication.getName())
+        );
+    }
+}

@@ -3,145 +3,150 @@ package com.example.wms.services;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.example.wms.dtos.LocationRequestDTO;
 import com.example.wms.dtos.LocationResponseDTO;
 import com.example.wms.entities.Location;
-import com.example.wms.entities.RoleName;
+import com.example.wms.entities.Shelf;
 import com.example.wms.entities.User;
-import com.example.wms.entities.WareHouse;
 import com.example.wms.mappers.LocationMapper;
 import com.example.wms.repositories.LocationRepository;
+import com.example.wms.repositories.ShelfRepository;
 import com.example.wms.repositories.UserRepository;
-import com.example.wms.repositories.WarehouseRepository;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
 public class LocationService {
 
     private final LocationRepository locationRepository;
-    private final WarehouseRepository warehouseRepository;
+    private final ShelfRepository shelfRepository;
     private final UserRepository userRepository;
     private final LocationMapper locationMapper;
 
-    public LocationResponseDTO create(LocationRequestDTO request, String currentUserEmail) {
-        User currentUser = getCurrentUser(currentUserEmail);
-        ensureOwnerOrAdmin(currentUser);
+    // CREATE
+    public LocationResponseDTO create(LocationRequestDTO request, String username) {
+        User user = getUser(username);
 
-        WareHouse warehouse = getManagedWarehouse(request.getWarehouseId(), currentUser);
+        if (request.getShelfId() == null) {
+            throw new RuntimeException("shelfId is required");
+        }
 
-        Location location = new Location();
-        location.setName(request.getName());
-        location.setZone(request.getZone());
-        location.setRack(request.getRack());
-        location.setEtager(request.getEtager());
-        location.setWarehouse(warehouse);
+        Shelf shelf = shelfRepository.findById(request.getShelfId())
+                .orElseThrow(() -> new RuntimeException("Shelf not found"));
+
+        // Check shelf belongs to user's warehouse
+        if (!getWarehouseIdFromShelf(shelf).equals(user.getWarehouse().getId())) {
+            throw new RuntimeException("Shelf does not belong to your warehouse");
+        }
+
+        Location location = locationMapper.toEntity(request);
+        location.setShelf(shelf);
+        location.setWarehouse(user.getWarehouse());
 
         return locationMapper.toDTO(locationRepository.save(location));
     }
 
-    public LocationResponseDTO update(Long id, LocationRequestDTO request, String currentUserEmail) {
-        User currentUser = getCurrentUser(currentUserEmail);
-        ensureOwnerOrAdmin(currentUser);
+    // GET BY ID
+    public LocationResponseDTO getById(Long id, String username) {
+        User user = getUser(username);
 
-        WareHouse managedWarehouse = getManagedWarehouse(request.getWarehouseId(), currentUser);
-        Location location = locationRepository.findByIdAndWarehouse(id, managedWarehouse)
+        Location location = locationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Location not found"));
 
-        if (request.getName() != null && !request.getName().isBlank()) {
-            location.setName(request.getName());
-        }
-        if (request.getZone() != null && !request.getZone().isBlank()) {
-            location.setZone(request.getZone());
-        }
-        if (request.getRack() != null && !request.getRack().isBlank()) {
-            location.setRack(request.getRack());
-        }
-        if (request.getEtager() != null && !request.getEtager().isBlank()) {
-            location.setEtager(request.getEtager());
+        checkWarehouse(location, user);
+
+        return locationMapper.toDTO(location);
+    }
+
+    // UPDATE
+    public LocationResponseDTO update(Long id, LocationRequestDTO request, String username) {
+        User user = getUser(username);
+
+        Location location = locationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Location not found"));
+
+        checkWarehouse(location, user);
+
+        location.setName(request.getName());
+        // location.setCode(request.getName()); 
+
+        // Update shelf if new shelfId
+        if (request.getShelfId() != null) {
+            Shelf shelf = shelfRepository.findById(request.getShelfId())
+                .orElseThrow(() -> new RuntimeException("Shelf not found"));
+            if (!getWarehouseIdFromShelf(shelf).equals(user.getWarehouse().getId())) {
+                throw new RuntimeException("Shelf does not belong to your warehouse");
+            }
+            location.setShelf(shelf);
         }
 
         return locationMapper.toDTO(locationRepository.save(location));
     }
 
-    public void delete(Long id, String currentUserEmail) {
+    // DELETE
+    public void delete(Long id, String username) {
+        User user = getUser(username);
 
-    User currentUser = getCurrentUser(currentUserEmail);
+        Location location = locationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Location not found"));
 
-    ensureOwnerOrAdmin(currentUser);
+        checkWarehouse(location, user);
 
-    WareHouse managedWarehouse = currentUser.getWarehouse();
+        locationRepository.delete(location);
+    }
 
-    Location location = locationRepository
-            .findByIdAndWarehouse(id, managedWarehouse)
-            .orElseThrow(() -> new RuntimeException("Location not found"));
+    // GET BY WAREHOUSE
+    public List<LocationResponseDTO> getByWarehouse(String username) {
+        User user = getUser(username);
 
-    locationRepository.delete(location);
+        return locationRepository.findByShelfRackZoneWarehouse_Id(user.getWarehouse().getId())
+                .stream()
+                .map(locationMapper::toDTO)
+                .toList();
+    }
+
+    public List<LocationResponseDTO> getByShelf(Long shelfId, String username) {
+        User user = getUser(username);
+        Shelf shelf = shelfRepository.findById(shelfId)
+                .orElseThrow(() -> new RuntimeException("Shelf not found"));
+        if (!getWarehouseIdFromShelf(shelf).equals(user.getWarehouse().getId())) {
+            throw new RuntimeException("Shelf not in your warehouse");
+        }
+        return locationRepository.findByShelf_Id(shelfId)
+                .stream()
+                .map(locationMapper::toDTO)
+                .toList();
+    }
+
+    // 🔒 HELPERS
+    private User getUser(String username) {
+        return userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private void checkWarehouse(Location location, User user) {
+        Long locationWarehouseId = getWarehouseIdFromLocation(location);
+        if (!locationWarehouseId.equals(user.getWarehouse().getId())) {
+            throw new RuntimeException("Unauthorized access");
+        }
+    }
+
+    private Long getWarehouseIdFromLocation(Location location) {
+        Shelf shelf = location.getShelf();
+        if (shelf == null) throw new RuntimeException("Location has no shelf");
+        return getWarehouseIdFromShelf(shelf);
+    }
+
+    private Long getWarehouseIdFromShelf(Shelf shelf) {
+        // TODO: Add Rack, Zone traversal - assuming hierarchy Shelf -> Rack -> Zone -> WareHouse
+        // For now, assume Shelf has warehouse or traverse
+        // Placeholder - implement full chain when Shelf/Rack/Zone fixed
+        if (shelf.getRack() == null || shelf.getRack().getZone() == null || shelf.getRack().getZone().getWarehouse() == null) {
+            throw new RuntimeException("Invalid hierarchy");
+        }
+        return shelf.getRack().getZone().getWarehouse().getId();
+    }
 }
-   public List<LocationResponseDTO> getByWarehouse(String username) {
 
-    User user = userRepository.findByEmail(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-    Long warehouseId = user.getWarehouse().getId();
-
-    return locationRepository.findByWarehouseId(warehouseId)
-            .stream()
-            .map(locationMapper::toDTO)
-            .toList();
-}
-             private User getCurrentUser(String email) {
-                 return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
-    }
-
-    private void ensureOwnerOrAdmin(User user) {
-        RoleName roleName = user.getRole().getName();
-        if (roleName != RoleName.OWNER && roleName != RoleName.ADMIN) {
-            throw new RuntimeException("Access denied");
-        }
-    }
-
-    private WareHouse getManagedWarehouse(Long wareHouseId, User currentUser) {
-        if (wareHouseId == null) {
-            throw new RuntimeException("Warehouse is required");
-        }
-
-        WareHouse warehouse = warehouseRepository.findById(wareHouseId)
-                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
-
-        if (warehouse.getCompany() == null || currentUser.getCompany() == null
-                || !warehouse.getCompany().getId().equals(currentUser.getCompany().getId())) {
-            throw new RuntimeException("Warehouse does not belong to your company");
-        }
-
-        if (currentUser.getRole().getName() == RoleName.ADMIN) {
-            if (currentUser.getWarehouse() == null) {
-                throw new RuntimeException("ADMIN is not assigned to any warehouse");
-            }
-
-            if (!warehouse.getId().equals(currentUser.getWarehouse().getId())) {
-                throw new RuntimeException("ADMIN can only manage locations in his own warehouse");
-            }
-        }
-
-        return warehouse;
-    }
-    
-   public LocationResponseDTO getById(Long id, String username) {
-
-    User user = userRepository.findByEmail(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-
-    Long warehouseId = user.getWarehouse().getId();
-
-    Location location = locationRepository
-            .findByIdAndWarehouseId(id, warehouseId)
-            .orElseThrow(() -> new RuntimeException("Not found"));
-
-    return locationMapper.toDTO(location);
-}}

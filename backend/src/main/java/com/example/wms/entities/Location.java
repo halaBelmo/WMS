@@ -1,6 +1,10 @@
 package com.example.wms.entities;
 
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -13,35 +17,30 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Setter
-@Getter
 @Entity
-
 @Table(name = "locations")
-
 public class Location {
-   
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     private String name;
+    private String code;
 
-    private String zone;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shelf_id")
+    private Shelf shelf;
 
-    private String rack;
-
-    private String etager;
+    @OneToMany(mappedBy = "location", cascade = CascadeType.ALL)
+    private List<Product> products;
 
     @ManyToOne
-    @JoinColumn(name = "warehouse_id")
-    private WareHouse warehouse;
-
-    @OneToMany(mappedBy = "location")
-    private java.util.List<Product> products;
-
-
+@JoinColumn(name = "warehouse_id")
+private WareHouse warehouse;
 }
+

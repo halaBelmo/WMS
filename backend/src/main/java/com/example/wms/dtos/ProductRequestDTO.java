@@ -16,5 +16,6 @@ public class ProductRequestDTO {
     private String categorie;
     private int quantiteDisponible;
     private Long fournisseurId;
-    private Long emplacementId;
+    private Long locationId;
+    private Long emplacementId; // legacy
 }

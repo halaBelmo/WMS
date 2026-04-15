@@ -9,6 +9,8 @@ import SignupPage from "./pages/SignupPage";
 import WarehouseManagementPage from "./pages/WarehouseManagementPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import AccessDeniedPage from "./pages/AccessDeniedPage";
+import ProductManagementPage from "./pages/ProductManagementPage";
+import LocationManagementPage from "./pages/LocationManagementPage";
 import "./styles/global.css";
 
 function PublicOnlyRoute({ children }) {
@@ -83,6 +85,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
                 <UserManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/products"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
+                <ProductManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/locations"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
+                <LocationManagementPage />
               </ProtectedRoute>
             }
           />

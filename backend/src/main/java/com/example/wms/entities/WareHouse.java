@@ -34,7 +34,7 @@ public class WareHouse {
 
     private String name;
 
-    private String location;
+    private String address;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id")
@@ -43,6 +43,6 @@ public class WareHouse {
     @OneToMany(mappedBy = "warehouse", cascade = CascadeType.ALL)
     private List<User> users = new ArrayList<>();
 
-    @OneToMany(mappedBy = "warehouse", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Location> locations;
+   @OneToMany(mappedBy = "warehouse", cascade = CascadeType.ALL, orphanRemoval = true)
+   private List<Location> locations = new ArrayList<>();
 }

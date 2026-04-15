@@ -14,7 +14,6 @@ public class WareHouseMapper {
         WareHouseDTO dto = new WareHouseDTO();
         dto.setId(warehouse.getId());
         dto.setName(warehouse.getName());
-        dto.setLocation(warehouse.getLocation());
 
         if (warehouse.getCompany() != null) {
             dto.setCompanyName(warehouse.getCompany().getName());
