@@ -28,7 +28,7 @@ public class ShelfController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('OWNER','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ShelfResponseDTO create(@RequestBody @Valid ShelfRequestDTO dto) {
         return shelfService.create(dto);
     }

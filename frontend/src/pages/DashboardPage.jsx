@@ -1,5 +1,6 @@
 ﻿import DashboardCard from "../components/DashboardCard";
 import PageHeader from "../components/PageHeader";
+import WarehouseTree from "../components/WarehouseTree";
 import { useAuth } from "../context/AuthContext";
 import styles from "./DashboardPage.module.css";
 
@@ -13,6 +14,7 @@ export default function DashboardPage() {
         subtitle="Overview of your connected account information."
       />
       <DashboardCard user={user} />
+      <WarehouseTree />
     </section>
   );
 }

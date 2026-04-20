@@ -11,6 +11,11 @@ import UserManagementPage from "./pages/UserManagementPage";
 import AccessDeniedPage from "./pages/AccessDeniedPage";
 import ProductManagementPage from "./pages/ProductManagementPage";
 import LocationManagementPage from "./pages/LocationManagementPage";
+import ZoneManagementPage from "./pages/ZoneManagementPage";
+import RackManagementPage from "./pages/RackManagementPage";
+import ShelfManagementPage from "./pages/ShelfManagementPage";
+import SupplierManagementPage from "./pages/SupplierManagementPage";
+
 import "./styles/global.css";
 
 function PublicOnlyRoute({ children }) {
@@ -101,6 +106,38 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
                 <LocationManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/zones"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
+                <ZoneManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/racks"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
+                <RackManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shelves"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
+                <ShelfManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/suppliers"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER"]}>
+                <SupplierManagementPage />
               </ProtectedRoute>
             }
           />

@@ -30,7 +30,7 @@ public class RackController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('OWNER','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public RackResponseDTO create(@RequestBody @Valid RackRequestDTO dto) {
         return rackService.create(dto);
     }

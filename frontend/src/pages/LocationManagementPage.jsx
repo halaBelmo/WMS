@@ -23,22 +23,73 @@ export default function LocationManagementPage() {
   const { user } = useAuth();
   const currentWarehouseId = user?.warehouseId || user?.warehouse?.id || "";
 
-  const [locations, setLocations] = useState([]);
+const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [racksLoading, setRacksLoading] = useState(false);
+  const [shelvesLoading, setShelvesLoading] = useState(false);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editingSnapshot, setEditingSnapshot] = useState(null);
+  const [zones, setZones] = useState([]);
+  const [racks, setRacks] = useState([]);
+  const [shelves, setShelves] = useState([]);
+  const [selectedZone, setSelectedZone] = useState("");
+  const [selectedRack, setSelectedRack] = useState("");
+  const [selectedShelf, setSelectedShelf] = useState("");
 
   const [form, setForm] = useState({
     name: "",
-    zone: "",
-    rack: "",
-    etager: "",
+    shelfId: "",
     warehouseId: currentWarehouseId,
   });
+
+const loadZones = async () => {
+    try {
+      const response = await api.get("/api/zones");
+      setZones(response.data || []);
+    } catch (err) {
+      console.error("Could not load zones:", err);
+    }
+  };
+
+  const loadRacks = async (zoneId) => {
+    if (!zoneId) {
+      setRacks([]);
+      setShelves([]);
+      setSelectedRack("");
+      setSelectedShelf("");
+      return;
+    }
+    setRacksLoading(true);
+    try {
+      const response = await api.get(`/api/racks?zoneId=${zoneId}`);
+      setRacks(response.data || []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not load racks.");
+    } finally {
+      setRacksLoading(false);
+    }
+  };
+
+  const loadShelves = async (rackId) => {
+    if (!rackId) {
+      setShelves([]);
+      setSelectedShelf("");
+      return;
+    }
+    setShelvesLoading(true);
+    try {
+      const response = await api.get(`/api/shelves?rackId=${rackId}`);
+      setShelves(response.data || []);
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not load shelves.");
+    } finally {
+      setShelvesLoading(false);
+    }
+  };
 
   const loadLocations = async () => {
     setLoading(true);
@@ -54,15 +105,26 @@ export default function LocationManagementPage() {
   };
 
   useEffect(() => {
+    loadZones();
     loadLocations();
   }, []);
 
-  const resetForm = () => {
+  useEffect(() => {
+    if (selectedZone) {
+      loadRacks(selectedZone);
+    }
+  }, [selectedZone]);
+
+  useEffect(() => {
+    if (selectedRack) {
+      loadShelves(selectedRack);
+    }
+  }, [selectedRack]);
+
+const resetForm = () => {
     setForm({
       name: "",
-      zone: "",
-      rack: "",
-      etager: "",
+      shelfId: "",
       warehouseId: currentWarehouseId,
     });
     setEditingId(null);
@@ -79,14 +141,15 @@ export default function LocationManagementPage() {
     setSaving(true);
     setFormError("");
 
-    if (!form.name || !form.warehouseId) {
-      setFormError("Name and warehouseId are required.");
+    if (!form.name || !form.shelfId) {
+      setFormError("Name and Shelf are required.");
       setSaving(false);
       return;
     }
 
     const payload = {
-      ...form,
+      name: form.name,
+      shelfId: Number(form.shelfId),
       warehouseId: Number(form.warehouseId),
     };
 
@@ -105,6 +168,22 @@ export default function LocationManagementPage() {
     }
   };
 
+  const handleZoneChange = (zoneId) => {
+    setSelectedZone(zoneId);
+    setSelectedRack("");
+    setSelectedShelf("");
+  };
+
+  const handleRackChange = (rackId) => {
+    setSelectedRack(rackId);
+    setSelectedShelf("");
+  };
+
+  const handleShelfChange = (shelfId) => {
+    setSelectedShelf(shelfId);
+    setForm((prev) => ({ ...prev, shelfId: shelfId }));
+  };
+
   const handleEdit = (targetLocation) => {
     setEditingId(targetLocation.id);
     setEditingSnapshot({
@@ -112,9 +191,7 @@ export default function LocationManagementPage() {
     });
     setForm({
       name: targetLocation.name || "",
-      zone: targetLocation.zone || "",
-      rack: targetLocation.rack || "",
-      etager: targetLocation.etager || "",
+      shelfId: "",
       warehouseId: targetLocation.warehouseId || currentWarehouseId,
     });
     setFormError("");
@@ -144,16 +221,81 @@ export default function LocationManagementPage() {
         subtitle="Create and manage locations (emplacements) in your warehouse."
       />
 
-      <LocationForm
-        form={form}
-        currentWarehouseId={currentWarehouseId}
-        onChange={handleFieldChange}
-        onSubmit={handleSubmit}
-        onCancel={resetForm}
-        isEditing={Boolean(editingId)}
-        isSubmitting={saving}
-        error={formError}
-      />
+      <div className={styles.hierarchySection}>
+        <h4>Select Hierarchy</h4>
+        <div className={styles.selectRow}>
+          <div className={styles.field}>
+            <label>Zone</label>
+            <select 
+              value={selectedZone} 
+              onChange={(e) => handleZoneChange(e.target.value)}
+              className={styles.select}
+            >
+              <option value="">-- Choose Zone --</option>
+              {zones.map((zone) => (
+                <option key={zone.id} value={zone.id}>
+                  {zone.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedZone && (
+            <>
+              <div className={styles.field}>
+                <label>Rack</label>
+                <select 
+                  value={selectedRack} 
+                  onChange={(e) => handleRackChange(e.target.value)}
+                  className={styles.select}
+                  disabled={racksLoading}
+                >
+                  <option value="">-- Choose Rack --</option>
+                  {racks.map((rack) => (
+                    <option key={rack.id} value={rack.id}>
+                      {rack.code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedRack && (
+                <div className={styles.field}>
+                  <label>Shelf</label>
+                  <select 
+                    value={selectedShelf} 
+                    onChange={(e) => handleShelfChange(e.target.value)}
+                    className={styles.select}
+                    disabled={shelvesLoading}
+                  >
+                    <option value="">-- Choose Shelf --</option>
+                    {shelves.map((shelf) => (
+                      <option key={shelf.id} value={shelf.id}>
+                        {shelf.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {selectedShelf && (
+<LocationForm
+          form={form}
+          shelves={shelves}
+          selectedShelf={selectedShelf}
+          onChange={handleFieldChange}
+          onSubmit={handleSubmit}
+          onCancel={resetForm}
+          isEditing={Boolean(editingId)}
+          isSubmitting={saving}
+          error={formError}
+          shelves={shelves}
+        />
+      )}
 
       {error ? <p className={styles.error}>{error}</p> : null}
 

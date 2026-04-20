@@ -20,28 +20,39 @@ import com.example.wms.services.WareHouseService;
 import lombok.RequiredArgsConstructor;
 
 @Service
+
 @RequiredArgsConstructor
+
 @Transactional
+
 public class WareHouseServiceImpl implements WareHouseService {
 
     private final WarehouseRepository wareHouseRepository;
+
     private final UserRepository userRepository;
+
     private final WareHouseMapper wareHouseMapper;
 
     @Override
+
     public WareHouseDTO createWareHouse(CreateWareHouseRequestDTO request, String ownerEmail) {
 
         User owner = userRepository.findByEmail(ownerEmail)
+
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
         if (owner.getRole() == null || owner.getRole().getName() != RoleName.OWNER) {
+
             throw new RuntimeException("Access denied: only OWNER can create warehouses");
+
         }
 
         Company company = owner.getCompany();
 
         WareHouse warehouse = new WareHouse();
+
         warehouse.setName(request.getName());
+
         warehouse.setCompany(company);
 
         WareHouse savedWarehouse = wareHouseRepository.save(warehouse);
@@ -49,71 +60,99 @@ public class WareHouseServiceImpl implements WareHouseService {
         company.getWarehouses().add(savedWarehouse);
 
         return wareHouseMapper.toDTO(savedWarehouse);
+
     }
 
     @Override
+
     public WareHouseDTO updateWareHouse(Long warehouseId, UpdateWareHouseRequestDTO request, String ownerEmail) {
 
         User owner = userRepository.findByEmail(ownerEmail)
+
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
         if (owner.getRole() == null || owner.getRole().getName() != RoleName.OWNER) {
+
             throw new RuntimeException("Access denied: only OWNER can update warehouses");
+
         }
 
         WareHouse warehouse = wareHouseRepository.findById(warehouseId)
+
                 .orElseThrow(() -> new RuntimeException("Warehouse not found"));
 
         if (warehouse.getCompany() == null || owner.getCompany() == null ||
+
                 !warehouse.getCompany().getId().equals(owner.getCompany().getId())) {
+
             throw new RuntimeException("Access denied: warehouse does not belong to your company");
+
         }
 
         if (request.getName() != null && !request.getName().isBlank()) {
-            warehouse.setName(request.getName());
-        }
 
-  
+            warehouse.setName(request.getName());
+
+        }
 
         WareHouse updatedWarehouse = wareHouseRepository.save(warehouse);
 
         return wareHouseMapper.toDTO(updatedWarehouse);
+
     }
 
     @Override
+
     public void deleteWareHouse(Long warehouseId, String ownerEmail) {
 
         User owner = userRepository.findByEmail(ownerEmail)
+
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
         if (owner.getRole() == null || owner.getRole().getName() != RoleName.OWNER) {
+
             throw new RuntimeException("Access denied: only OWNER can delete warehouses");
+
         }
 
         WareHouse warehouse = wareHouseRepository.findById(warehouseId)
+
                 .orElseThrow(() -> new RuntimeException("Warehouse not found"));
 
         if (warehouse.getCompany() == null || owner.getCompany() == null ||
+
                 !warehouse.getCompany().getId().equals(owner.getCompany().getId())) {
+
             throw new RuntimeException("Access denied: warehouse does not belong to your company");
+
         }
 
         wareHouseRepository.delete(warehouse);
+
     }
 
     @Override
+
     public List<WareHouseDTO> getCompanyWareHouses(String ownerEmail) {
 
         User owner = userRepository.findByEmail(ownerEmail)
+
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
         if (owner.getRole() == null || owner.getRole().getName() != RoleName.OWNER) {
+
             throw new RuntimeException("Access denied: only OWNER can view warehouses");
+
         }
 
         return wareHouseRepository.findByCompany(owner.getCompany())
+
                 .stream()
+
                 .map(wareHouseMapper::toDTO)
+
                 .toList();
+
     }
+
 }

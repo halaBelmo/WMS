@@ -30,7 +30,7 @@ public class SupplierController {
     private final SupplierService supplierService;
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('OWNER')")
     public ResponseEntity<SupplierResponseDTO> create(
             @Valid @RequestBody SupplierRequestDTO request,
             Authentication authentication) {
@@ -52,7 +52,7 @@ public class SupplierController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('OWNER')")
     public ResponseEntity<SupplierResponseDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody SupplierRequestDTO request,
@@ -62,7 +62,7 @@ public class SupplierController {
 
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('OWNER')")
     public ResponseEntity<Void> delete(@PathVariable Long id,
                                        Authentication authentication) {
         supplierService.delete(id, authentication.getName());

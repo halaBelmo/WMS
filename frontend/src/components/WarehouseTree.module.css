@@ -1,0 +1,42 @@
+.container {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  font-family: monospace;
+  font-size: 0.9rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.container h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.treeNode {
+  margin-left: 1rem;
+}
+
+.nodeLabel {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.branch {
+  margin: 0.2rem 0;
+}
+
+.branchLine {
+  color: #bdc3c7;
+}
+
+.branchConnector {
+  color: #95a5a6;
+}
+
+.nodeLabel:hover {
+  color: #3498db;
+}
+

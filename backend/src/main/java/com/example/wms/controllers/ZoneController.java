@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.wms.dtos.ZoneResponseDTO;
 import com.example.wms.entities.Zone;
+import com.example.wms.mappers.ZoneMapper;
 import com.example.wms.services.ZoneService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,14 +24,16 @@ import lombok.RequiredArgsConstructor;
 public class ZoneController {
 
     private final ZoneService zoneService;
+    private final ZoneMapper zoneMapper;
 
-    @GetMapping
-    public List<Zone> getZones(Authentication authentication) {
-        return zoneService.getZones(authentication.getName());
+@GetMapping
+    public List<ZoneResponseDTO> getZones(Authentication authentication) {
+        List<Zone> zones = zoneService.getZones(authentication.getName());
+        return zoneMapper.toDTOList(zones);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('OWNER','ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public Zone create(@RequestBody Zone zone, Authentication authentication) {
         return zoneService.create(zone, authentication.getName());
     }

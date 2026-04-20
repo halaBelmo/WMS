@@ -3,7 +3,8 @@ import styles from "./LocationForm.module.css";
 
 export default function LocationForm({
   form,
-  currentWarehouseId,
+  shelves,
+  selectedShelf,
   onChange,
   onSubmit,
   onCancel,
@@ -27,30 +28,19 @@ export default function LocationForm({
         </div>
 
         <div className={styles.field}>
-          <label>Zone</label>
-          <input
-            value={form.zone}
-            onChange={(event) => onChange("zone", event.target.value)}
-            placeholder="Zone (e.g., A1)"
-          />
-        </div>
-
-        <div className={styles.field}>
-          <label>Rack</label>
-          <input
-            value={form.rack}
-            onChange={(event) => onChange("rack", event.target.value)}
-            placeholder="Rack number"
-          />
-        </div>
-
-        <div className={styles.field}>
-          <label>Etager</label>
-          <input
-            value={form.etager}
-            onChange={(event) => onChange("etager", event.target.value)}
-            placeholder="Shelf level"
-          />
+          <label>Shelf</label>
+          <select
+            value={form.shelfId || ""}
+            onChange={(event) => onChange("shelfId", event.target.value)}
+            required
+          >
+            <option value="">Select Shelf</option>
+            {shelves.map((shelf) => (
+              <option key={shelf.id} value={shelf.id}>
+                {shelf.code}
+              </option>
+            ))}
+          </select>
         </div>
 
 

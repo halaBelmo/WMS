@@ -30,7 +30,7 @@ public class LocationController {
 
     // CREATE
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<LocationResponseDTO> create(
             @RequestBody LocationRequestDTO request,
             Authentication authentication) {
@@ -53,7 +53,7 @@ public class LocationController {
 
     // UPDATE
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<LocationResponseDTO> update(
             @PathVariable Long id,
             @RequestBody LocationRequestDTO request,
@@ -66,7 +66,7 @@ public class LocationController {
 
     // DELETE
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<Void> delete(
             @PathVariable Long id,
             Authentication authentication) {

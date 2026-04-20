@@ -25,7 +25,7 @@ public class ZoneService {
 
         Long warehouseId = user.getWarehouse().getId();
 
-        return zoneRepository.findByWarehouse_Id(warehouseId);
+        return zoneRepository.findByWarehouseId(warehouseId);
     }
 
     public Zone create(Zone zone, String username) {
