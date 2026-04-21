@@ -19,8 +19,6 @@ export default function LocationTable({ locations, loading, deletingId, onEdit, 
             <th>Zone</th>
             <th>Rack</th>
             <th>Etager</th>
-            <th>Warehouse ID</th>
-            <th>Warehouse Name</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -31,8 +29,6 @@ export default function LocationTable({ locations, loading, deletingId, onEdit, 
               <td>{location.zone || "-"}</td>
               <td>{location.rack || "-"}</td>
               <td>{location.etager || "-"}</td>
-              <td>{location.warehouseId}</td>
-              <td>{location.warehouseName}</td>
               <td className={styles.actions}>
                 <Button variant="outline" fullWidth={false} onClick={() => onEdit(location)}>
                   Edit

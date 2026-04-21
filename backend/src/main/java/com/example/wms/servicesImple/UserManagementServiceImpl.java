@@ -2,8 +2,6 @@ package com.example.wms.servicesImple;
 
 import java.util.List;
 
-import com.example.wms.entities.*;
-import com.example.wms.repositories.WarehouseRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,9 +9,15 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.wms.dtos.CreateUserRequestDTO;
 import com.example.wms.dtos.UpdateUserRequestDTO;
 import com.example.wms.dtos.UserDTO;
+import com.example.wms.entities.Company;
+import com.example.wms.entities.Role;
+import com.example.wms.entities.RoleName;
+import com.example.wms.entities.User;
+import com.example.wms.entities.WareHouse;
 import com.example.wms.mappers.UserMapper;
 import com.example.wms.repositories.RoleRepository;
 import com.example.wms.repositories.UserRepository;
+import com.example.wms.repositories.WarehouseRepository;
 import com.example.wms.services.UserManagementService;
 
 import lombok.RequiredArgsConstructor;
@@ -73,9 +77,9 @@ public class UserManagementServiceImpl implements UserManagementService {
             }
 
         } else if (currentRole == RoleName.ADMIN) {
-            if (request.getRoleName() != RoleName.MAGASINIER &&
-                    request.getRoleName() != RoleName.RESPONSABLE_STOCK) {
-                throw new RuntimeException("ADMIN can only create MAGASINIER or RESPONSABLE_STOCK");
+            if (request.getRoleName() != RoleName.MAGASINIER 
+                   ) {
+                throw new RuntimeException("ADMIN can only create MAGASINIER ");
             }
 
             if (currentUser.getWarehouse() == null) {
@@ -136,8 +140,8 @@ public class UserManagementServiceImpl implements UserManagementService {
             }
 
             if (request.getRoleName() != null &&
-                    request.getRoleName() != RoleName.MAGASINIER &&
-                    request.getRoleName() != RoleName.RESPONSABLE_STOCK) {
+                    request.getRoleName() != RoleName.MAGASINIER 
+        ) {
                 throw new RuntimeException("ADMIN can only assign MAGASINIER or RESPONSABLE_STOCK");
             }
         } else if (currentRole != RoleName.OWNER) {
@@ -225,8 +229,8 @@ public class UserManagementServiceImpl implements UserManagementService {
                 throw new RuntimeException("ADMIN can only delete users in his own warehouse");
             }
 
-            if (userToDelete.getRole().getName() != RoleName.MAGASINIER &&
-                    userToDelete.getRole().getName() != RoleName.RESPONSABLE_STOCK) {
+            if (userToDelete.getRole().getName() != RoleName.MAGASINIER 
+                    ) {
                 throw new RuntimeException("ADMIN can only delete MAGASINIER or RESPONSABLE_STOCK");
             }
         } else if (currentRole != RoleName.OWNER) {

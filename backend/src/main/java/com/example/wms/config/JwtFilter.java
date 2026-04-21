@@ -1,22 +1,25 @@
 package com.example.wms.config;
 
-import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.stereotype.Component;
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.example.wms.services.JWTService;
 import com.example.wms.services.CustomUserDetailsService;
+import com.example.wms.services.JWTService;
+
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-import java.io.IOException;
-import jakarta.servlet.http.*;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 
 @Component
@@ -30,7 +33,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException,IOException {
-        // Logic d extraction de jwt a partir de request 
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String email = null;

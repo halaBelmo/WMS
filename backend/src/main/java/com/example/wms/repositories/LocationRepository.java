@@ -15,6 +15,6 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     Optional<Location> findByIdAndWarehouse(Long id, WareHouse warehouse);
     List<Location> findByShelf_Id(Long shelfId);
     Optional<Location> findByIdAndShelf_Id(Long id, Long shelfId);
-    
+    void deleteByShelfId(Long shelfId);
     List<Location> findByShelfRackZoneWarehouse_Id(Long warehouseId);
 }

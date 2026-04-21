@@ -12,5 +12,5 @@ public class UserDTO {
     private String role;
     private String companyName;
     private String warehouseName;
-    private Long warehouseId; // add this
+    private Long warehouseId; 
 }

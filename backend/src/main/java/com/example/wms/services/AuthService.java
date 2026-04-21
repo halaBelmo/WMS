@@ -49,11 +49,6 @@ public class AuthService {
 
     private JWTService jwtService;
 
-    // =====================================================
-
-    // REGISTER COMPANY + OWNER (ONLY)
-
-    // =====================================================
 
     public Map<String, Object> registerCompany(RegisterCompanyRequestDTO req) {
 
@@ -124,33 +119,23 @@ public class AuthService {
         authenticationManager.authenticate(
 
                 new UsernamePasswordAuthenticationToken(
-
                         request.getEmail(),
-
                         request.getPassword()
-
                 )
-
-        );
+                                        );
 
         User user = userRepository.findByEmail(request.getEmail())
 
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String token = jwtService.generateToken(
-
                user
-
         );
 
         return Map.of(
-
                 "message", "Login successful",
-
                 "token", token,
-
                 "user", userMapper.toDTO(user)
-
         );
 
     }

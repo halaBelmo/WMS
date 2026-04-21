@@ -1,7 +1,9 @@
-package com.example.wms.dtos;
+package com.example.wms.mappers;
 
 import org.springframework.stereotype.Component;
 
+import com.example.wms.dtos.ShelfRequestDTO;
+import com.example.wms.dtos.ShelfResponseDTO;
 import com.example.wms.entities.Shelf;
 import com.example.wms.repositories.RackRepository;
 

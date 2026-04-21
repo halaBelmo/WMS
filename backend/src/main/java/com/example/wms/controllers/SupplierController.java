@@ -24,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/suppliers")
+@RequestMapping("/api/owner/suppliers")
 public class SupplierController {
     
     private final SupplierService supplierService;
@@ -39,14 +39,14 @@ public class SupplierController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER')")
     public ResponseEntity<SupplierResponseDTO> getById(@PathVariable Long id,
                                                        Authentication authentication) {
         return ResponseEntity.ok(supplierService.getById(id, authentication.getName()));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER')")
     public ResponseEntity<List<SupplierResponseDTO>> getAll(Authentication authentication) {
         return ResponseEntity.ok(supplierService.getAll(authentication.getName()));
     }
@@ -71,7 +71,7 @@ public class SupplierController {
 
 
     @GetMapping("/search")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER')")
     public ResponseEntity<List<SupplierResponseDTO>> search(
             @RequestParam String name,
             Authentication authentication) {

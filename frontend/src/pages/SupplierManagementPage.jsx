@@ -41,7 +41,7 @@ export default function SupplierManagementPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/api/suppliers");
+      const response = await api.get("/api/owner/suppliers");
       setSuppliers(normalizeSuppliers(response.data));
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Could not load suppliers.");
@@ -87,9 +87,9 @@ export default function SupplierManagementPage() {
 
     try {
       if (editingId) {
-        await api.put(`/api/suppliers/${editingId}`, payload);
+        await api.put(`/api/owner/suppliers/${editingId}`, payload);
       } else {
-        await api.post("/api/suppliers", payload);
+        await api.post("/api/owner/suppliers", payload);
       }
       resetForm();
       await loadSuppliers();
@@ -120,7 +120,7 @@ export default function SupplierManagementPage() {
     setError("");
 
     try {
-      await api.delete(`/api/suppliers/${targetSupplier.id}`);
+      await api.delete(`/api/owner/suppliers/${targetSupplier.id}`);
       await loadSuppliers();
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Could not delete supplier.");

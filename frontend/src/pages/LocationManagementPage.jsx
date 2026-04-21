@@ -92,10 +92,14 @@ const loadZones = async () => {
   };
 
   const loadLocations = async () => {
+    if (!selectedShelf) {
+      setLocations([]);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/api/locations");
+      const response = await api.get(`/api/locations/shelf/${selectedShelf}`);
       setLocations(normalizeLocations(response.data));
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Could not load locations.");
@@ -104,10 +108,11 @@ const loadZones = async () => {
     }
   };
 
+
   useEffect(() => {
     loadZones();
-    loadLocations();
   }, []);
+
 
   useEffect(() => {
     if (selectedZone) {
@@ -120,6 +125,11 @@ const loadZones = async () => {
       loadShelves(selectedRack);
     }
   }, [selectedRack]);
+
+  useEffect(() => {
+    loadLocations();
+  }, [selectedShelf]);
+
 
 const resetForm = () => {
     setForm({

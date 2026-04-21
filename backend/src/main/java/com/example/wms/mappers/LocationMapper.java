@@ -21,22 +21,16 @@ public class LocationMapper {
         if (location == null) {
             return null;
         }
-
         LocationResponseDTO dto = new LocationResponseDTO();
-
         dto.setId(location.getId());
         dto.setName(location.getName() != null ? location.getName() : location.getCode());
-
         // Populate hierarchy flat fields
         if (location.getShelf() != null) {
             dto.setEtager(location.getShelf().getLevel());
-
             if (location.getShelf().getRack() != null) {
                 dto.setRack(location.getShelf().getRack().getCode());
-
                 if (location.getShelf().getRack().getZone() != null) {
                     dto.setZone(location.getShelf().getRack().getZone().getName());
-
                     if (location.getShelf().getRack().getZone().getWarehouse() != null) {
                         dto.setWarehouseId(location.getShelf().getRack().getZone().getWarehouse().getId());
                         dto.setWarehouseName(location.getShelf().getRack().getZone().getWarehouse().getName());
@@ -53,8 +47,7 @@ public class LocationMapper {
 
         Location location = new Location();
         location.setName(dto.getName());
-        location.setCode(dto.getName()); // Fallback
-        // shelf set in service layer
+        location.setCode(dto.getName()); 
         return location;
     }
 }

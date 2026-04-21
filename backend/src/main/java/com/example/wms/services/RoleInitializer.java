@@ -1,4 +1,4 @@
-package com.example.wms.config;
+package com.example.wms.services;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;

@@ -37,7 +37,7 @@
 }
 
 .editBtn {
-  background: var(--color-success);
+  background: green;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -52,7 +52,7 @@
 }
 
 .deleteBtn {
-  background: var(--color-error);
+  background: red;
   color: white;
   border: none;
   padding: 0.5rem 1rem;

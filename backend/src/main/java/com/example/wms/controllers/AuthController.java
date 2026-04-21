@@ -4,7 +4,10 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.example.wms.dtos.LoginRequestDTO;
 import com.example.wms.dtos.RegisterCompanyRequestDTO;
@@ -15,10 +18,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+
 public class AuthController {
 
     private final AuthService authService;
-
+    //register creation dyal owner o company 
     @PostMapping("/register-company")
     public ResponseEntity<Map<String, Object>> register(
             @RequestBody RegisterCompanyRequestDTO request

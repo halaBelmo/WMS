@@ -6,16 +6,14 @@ export default function Sidebar() {
   const { role } = useAuth();
 
   const links = [
-    { to: "/dashboard", label: "Dashboard", roles: ["OWNER", "ADMIN", "MAGASINIER", "RESPONSABLE_STOCK"] },
+    { to: "/dashboard", label: "Dashboard", roles: ["OWNER", "ADMIN", "MAGASINIER"] },
     { to: "/warehouses", label: "Warehouses", roles: ["OWNER"] },
     { to: "/users", label: "Users", roles: ["OWNER", "ADMIN"] },
-    { to: "/products", label: "Products", roles: ["OWNER", "ADMIN", "MAGASINIER"] },
     { to: "/suppliers", label: "Suppliers", roles: ["OWNER"] },
-
-    { to: "/zones", label: "Zones", roles: ["OWNER", "ADMIN"] },
-    { to: "/racks", label: "Racks", roles: ["OWNER", "ADMIN"] },
-    { to: "/shelves", label: "Shelves", roles: ["OWNER", "ADMIN"] },
-    { to: "/locations", label: "Locations", roles: ["OWNER", "ADMIN", "MAGASINIER", "RESPONSABLE_STOCK"] },
+    { to: "/zones", label: "Zones", roles: ["ADMIN"] },
+    { to: "/racks", label: "Racks", roles: ["ADMIN"] },
+    { to: "/shelves", label: "Shelves", roles: ["ADMIN"] },
+    { to: "/locations", label: "Locations", roles: ["ADMIN"] },
   ];
 
   const visibleLinks = links.filter((link) => link.roles.includes(role));

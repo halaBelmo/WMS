@@ -40,7 +40,7 @@ public class Location {
     private List<Product> products;
 
     @ManyToOne
-@JoinColumn(name = "warehouse_id")
-private WareHouse warehouse;
+    @JoinColumn(name = "warehouse_id")
+    private WareHouse warehouse;
 }
 

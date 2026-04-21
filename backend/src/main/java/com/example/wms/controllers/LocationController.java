@@ -28,7 +28,6 @@ public class LocationController {
 
     private final LocationService locationService;
 
-    // CREATE
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<LocationResponseDTO> create(
@@ -39,9 +38,8 @@ public class LocationController {
                 .body(locationService.create(request, authentication.getName()));
     }
 
-    // GET BY ID (SECURE)
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER')")
     public ResponseEntity<LocationResponseDTO> getById(
             @PathVariable Long id,
             Authentication authentication) {
@@ -51,7 +49,6 @@ public class LocationController {
         );
     }
 
-    // UPDATE
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<LocationResponseDTO> update(
@@ -64,7 +61,6 @@ public class LocationController {
         );
     }
 
-    // DELETE
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ADMIN')")
     public ResponseEntity<Void> delete(
@@ -75,9 +71,8 @@ public class LocationController {
         return ResponseEntity.noContent().build();
     }
 
-    // GET ALL FOR USER WAREHOUSE
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER')")
     public ResponseEntity<List<LocationResponseDTO>> getByWarehouse(
             Authentication authentication) {
 
@@ -87,7 +82,7 @@ public class LocationController {
     }
 
     @GetMapping("/shelf/{shelfId}")
-    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER', 'RESPONSABLE_STOCK')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'MAGASINIER')")
     public ResponseEntity<List<LocationResponseDTO>> getByShelf(
             @PathVariable Long shelfId,
             Authentication authentication) {

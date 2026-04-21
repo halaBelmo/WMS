@@ -9,7 +9,6 @@ import SignupPage from "./pages/SignupPage";
 import WarehouseManagementPage from "./pages/WarehouseManagementPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import AccessDeniedPage from "./pages/AccessDeniedPage";
-import ProductManagementPage from "./pages/ProductManagementPage";
 import LocationManagementPage from "./pages/LocationManagementPage";
 import ZoneManagementPage from "./pages/ZoneManagementPage";
 import RackManagementPage from "./pages/RackManagementPage";
@@ -93,14 +92,7 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/products"
-            element={
-              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
-                <ProductManagementPage />
-              </ProtectedRoute>
-            }
-          />
+
           <Route
             path="/locations"
             element={

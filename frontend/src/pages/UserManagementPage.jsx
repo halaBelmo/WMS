@@ -28,11 +28,11 @@ function normalizeWarehouses(data) {
 
 function getRolesFor(currentRole) {
   if (currentRole === "OWNER") {
-    return ["ADMIN", "MAGASINIER", "RESPONSABLE_STOCK"];
+    return ["ADMIN", "MAGASINIER"];
   }
 
   if (currentRole === "ADMIN") {
-    return ["MAGASINIER", "RESPONSABLE_STOCK"];
+    return ["MAGASINIER"];
   }
 
   return [];
