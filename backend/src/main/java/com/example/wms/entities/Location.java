@@ -2,7 +2,6 @@ package com.example.wms.entities;
 
 import java.util.List;
 
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -36,11 +35,11 @@ public class Location {
     @JoinColumn(name = "shelf_id")
     private Shelf shelf;
 
-    @OneToMany(mappedBy = "location", cascade = CascadeType.ALL)
-    private List<Product> products;
-
     @ManyToOne
     @JoinColumn(name = "warehouse_id")
     private WareHouse warehouse;
+
+    @OneToMany(mappedBy = "location")
+    private List<Stock> stocks;
 }
 

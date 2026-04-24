@@ -10,6 +10,8 @@ export default function Sidebar() {
     { to: "/warehouses", label: "Warehouses", roles: ["OWNER"] },
     { to: "/users", label: "Users", roles: ["OWNER", "ADMIN"] },
     { to: "/suppliers", label: "Suppliers", roles: ["OWNER"] },
+    { to: "/products", label: "Products", roles: ["OWNER"] },
+    { to: "/stocks", label: "Stocks", roles: ["ADMIN"] },
     { to: "/zones", label: "Zones", roles: ["ADMIN"] },
     { to: "/racks", label: "Racks", roles: ["ADMIN"] },
     { to: "/shelves", label: "Shelves", roles: ["ADMIN"] },

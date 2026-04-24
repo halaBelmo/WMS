@@ -15,26 +15,22 @@ export default function ProductTable({ products, loading, deletingId, onEdit, on
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>Reference</th>
-            <th>Nom</th>
+            <th>ID</th>
+            <th>Name</th>
             <th>Description</th>
-            <th>Catégorie</th>
-            <th>Quantité</th>
-            <th>Emplacement</th>
-            <th>Fournisseur</th>
+            <th>Price</th>
+            <th>Supplier</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {products.map((product) => (
             <tr key={product.id}>
-              <td>{product.reference}</td>
-              <td>{product.nom}</td>
+              <td>{product.id}</td>
+              <td>{product.name}</td>
               <td>{product.description || "-"}</td>
-              <td>{product.categorie || "-"}</td>
-              <td>{product.quantiteDisponible}</td>
-              <td>{product.emplacementName}</td>
-              <td>{product.fournisseurName}</td>
+              <td>{product.price ?? "-"}</td>
+              <td>{product.supplierName || "-"}</td>
               <td className={styles.actions}>
                 <Button variant="outline" fullWidth={false} onClick={() => onEdit(product)}>
                   Edit
@@ -55,3 +51,4 @@ export default function ProductTable({ products, loading, deletingId, onEdit, on
     </div>
   );
 }
+

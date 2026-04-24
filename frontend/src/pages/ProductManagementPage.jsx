@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/PageHeader";
 import ProductForm from "../components/ProductForm";
 import ProductTable from "../components/ProductTable";
@@ -10,17 +9,11 @@ function normalizeProducts(data) {
   const list = Array.isArray(data) ? data : data?.data || [];
   return list.map((item) => ({
     id: item.id,
-    reference: item.reference,
-    nom: item.nom,
-    description: item.description,
-    categorie: item.categorie,
-    quantiteDisponible: item.quantiteDisponible,
-    zoneId: item.zoneId || item.location?.zoneId,
-    rackId: item.rackId || item.location?.rackId,
-    shelfId: item.shelfId || item.location?.shelfId,
-    locationId: item.locationId || item.location?.id,
-    emplacementName: item.location?.name || "-",
-    fournisseurName: item.supplier?.name || "-",
+    name: item.name || "",
+    description: item.description || "",
+    price: item.price ?? 0,
+    supplierId: item.supplierId,
+    supplierName: item.supplierName || "-",
   }));
 }
 
@@ -34,23 +27,17 @@ export default function ProductManagementPage() {
   const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
-    reference: "",
-    nom: "",
+    name: "",
     description: "",
-    categorie: "",
-    quantiteDisponible: 0,
-    zoneId: "",
-    rackId: "",
-    shelfId: "",
-    locationId: "",
-    fournisseurId: "",
+    price: "",
+    supplierId: "",
   });
 
   const loadProducts = async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/api/products");
+      const response = await api.get("/api/owner/products");
       setProducts(normalizeProducts(response.data));
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Could not load products.");
@@ -65,16 +52,10 @@ export default function ProductManagementPage() {
 
   const resetForm = () => {
     setForm({
-      reference: "",
-      nom: "",
+      name: "",
       description: "",
-      categorie: "",
-      quantiteDisponible: 0,
-      zoneId: "",
-      rackId: "",
-      shelfId: "",
-      locationId: "",
-      fournisseurId: "",
+      price: "",
+      supplierId: "",
     });
     setEditingId(null);
     setFormError("");
@@ -89,28 +70,24 @@ export default function ProductManagementPage() {
     setSaving(true);
     setFormError("");
 
-    if (!form.reference || !form.nom || !form.locationId || !form.fournisseurId) {
-      setFormError("Reference, nom, locationId, and fournisseurId are required.");
+    if (!form.name || form.price === "") {
+      setFormError("Name and price are required.");
       setSaving(false);
       return;
     }
 
     const payload = {
-      reference: form.reference,
-      nom: form.nom,
-      description: form.description,
-      categorie: form.categorie,
-      quantiteDisponible: Number(form.quantiteDisponible),
-      locationId: Number(form.locationId),
-      fournisseurId: Number(form.fournisseurId),
-      // zoneId, rackId, shelfId optional if backend needs
+      name: form.name,
+      description: form.description || "",
+      price: Number(form.price),
+      supplierId: form.supplierId ? Number(form.supplierId) : null,
     };
 
     try {
       if (editingId) {
-        await api.put(`/api/products/${editingId}`, payload);
+        await api.put(`/api/owner/products/${editingId}`, payload);
       } else {
-        await api.post("/api/products", payload);
+        await api.post("/api/owner/products", payload);
       }
       resetForm();
       await loadProducts();
@@ -124,29 +101,23 @@ export default function ProductManagementPage() {
   const handleEdit = (targetProduct) => {
     setEditingId(targetProduct.id);
     setForm({
-      reference: targetProduct.reference || "",
-      nom: targetProduct.nom || "",
+      name: targetProduct.name || "",
       description: targetProduct.description || "",
-      categorie: targetProduct.categorie || "",
-      quantiteDisponible: targetProduct.quantiteDisponible || 0,
-      zoneId: targetProduct.zoneId || "",
-      rackId: targetProduct.rackId || "",
-      shelfId: targetProduct.shelfId || "",
-      locationId: targetProduct.locationId || "",
-      fournisseurId: targetProduct.fournisseurId || "",
+      price: targetProduct.price ?? "",
+      supplierId: targetProduct.supplierId || "",
     });
     setFormError("");
   };
 
   const handleDelete = async (targetProduct) => {
-    const confirmed = window.confirm(`Delete product ${targetProduct.reference}?`);
+    const confirmed = window.confirm(`Delete product ${targetProduct.name}?`);
     if (!confirmed) return;
 
     setDeletingId(targetProduct.id);
     setError("");
 
     try {
-      await api.delete(`/api/products/${targetProduct.id}`);
+      await api.delete(`/api/owner/products/${targetProduct.id}`);
       await loadProducts();
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Could not delete product.");

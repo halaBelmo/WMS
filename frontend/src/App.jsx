@@ -14,6 +14,8 @@ import ZoneManagementPage from "./pages/ZoneManagementPage";
 import RackManagementPage from "./pages/RackManagementPage";
 import ShelfManagementPage from "./pages/ShelfManagementPage";
 import SupplierManagementPage from "./pages/SupplierManagementPage";
+import ProductManagementPage from "./pages/ProductManagementPage";
+import StockManagementPage from "./pages/StockManagementPage";
 
 import "./styles/global.css";
 
@@ -130,6 +132,22 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["OWNER"]}>
                 <SupplierManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/products"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER"]}>
+                <ProductManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stocks"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
+                <StockManagementPage />
               </ProtectedRoute>
             }
           />
