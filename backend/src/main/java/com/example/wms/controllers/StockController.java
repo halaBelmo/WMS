@@ -6,14 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.wms.dtos.StockRequestDTO;
 import com.example.wms.dtos.StockResponseDTO;
@@ -94,5 +87,28 @@ public class StockController {
 
         stockService.delete(id, authentication.getName());
         return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'MAGASINIER')")
+    public ResponseEntity<List<StockResponseDTO>> search(
+            @RequestParam(required = false) String productName,
+            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) Long warehouseId,
+            @RequestParam(required = false) Long zoneId,
+            @RequestParam(required = false) Long rackId,
+            @RequestParam(required = false) Long shelfId,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                stockService.search(
+                        productName,
+                        supplierId,
+                        warehouseId,
+                        zoneId,
+                        rackId,
+                        shelfId,
+                        authentication.getName()
+                )
+        );
     }
 }

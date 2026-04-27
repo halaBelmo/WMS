@@ -16,6 +16,9 @@ import ShelfManagementPage from "./pages/ShelfManagementPage";
 import SupplierManagementPage from "./pages/SupplierManagementPage";
 import ProductManagementPage from "./pages/ProductManagementPage";
 import StockManagementPage from "./pages/StockManagementPage";
+import StockSearchPage from "./pages/StockSearchPage";
+import StockMovementPage from "./pages/StockMovementPage";
+import CustomerManagementPage from "./pages/CustomerManagementPage";
 
 import "./styles/global.css";
 
@@ -148,6 +151,30 @@ export default function App() {
             element={
               <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
                 <StockManagementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stocks/search"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <StockSearchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/movements"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN", "MAGASINIER"]}>
+                <StockMovementPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customers"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <CustomerManagementPage />
               </ProtectedRoute>
             }
           />

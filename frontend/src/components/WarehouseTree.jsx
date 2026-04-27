@@ -31,7 +31,7 @@ export default function WarehouseTree() {
                 const locations = locationsRes.data || [];
                 
                 const locationsWithChildren = await Promise.all(locations.map(async (location) => {
-                  const productsRes = await api.get("/api/products");
+                  const productsRes = await api.get("/api/owner/products");
                   const products = productsRes.data.filter(p => p.locationId === location.id) || [];
                   return {
                     name: location.name,
@@ -124,4 +124,5 @@ export default function WarehouseTree() {
     </div>
   );
 }
+
 

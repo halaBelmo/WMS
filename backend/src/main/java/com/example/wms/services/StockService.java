@@ -145,4 +145,29 @@ public class StockService {
             throw new RuntimeException("Access denied");
         }
     }
+
+    public List<StockResponseDTO> search(
+            String productName,
+            Long supplierId,
+            Long warehouseId,
+            Long zoneId,
+            Long rackId,
+            Long shelfId,
+            String email
+    ) {
+        User user = getUser(email);
+        Long companyId = user.getCompany().getId();
+
+        return stockRepository.searchStocks(
+                        companyId,
+                        productName,
+                        supplierId,
+                        warehouseId,
+                        zoneId,
+                        rackId,
+                        shelfId
+                ).stream()
+                .map(StockMapper::toDTO)
+                .toList();
+    }
 }

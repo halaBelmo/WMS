@@ -2,12 +2,14 @@ package com.example.wms.services;
 
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.example.wms.dtos.ProductRequestDTO;
 import com.example.wms.dtos.ProductResponseDTO;
 import com.example.wms.entities.Company;
 import com.example.wms.entities.Product;
+import com.example.wms.entities.RoleName;
 import com.example.wms.entities.Supplier;
 import com.example.wms.entities.User;
 import com.example.wms.mappers.ProductMapper;
@@ -25,20 +27,17 @@ public class ProductService {
     private final SupplierRepository supplierRepository;
     private final UserRepository userRepository;
 
-    // =========================
-    // CREATE
-    // =========================
     public ProductResponseDTO create(ProductRequestDTO dto, String email) {
-
         User user = getUserByEmail(email);
         Company company = user.getCompany();
 
-        checkOwner(user);
+        checkOwnerByRole(user);
 
         Supplier supplier = null;
         if (dto.getSupplierId() != null) {
             supplier = supplierRepository.findById(dto.getSupplierId())
                     .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            checkSupplierCompanyAccess(supplier, user);
         }
 
         Product product = new Product();
@@ -51,11 +50,7 @@ public class ProductService {
         return ProductMapper.toDTO(productRepository.save(product));
     }
 
-    // =========================
-    // GET ALL
-    // =========================
     public List<ProductResponseDTO> getAll(String email) {
-
         User user = getUserByEmail(email);
 
         return productRepository.findByCompanyId(user.getCompany().getId())
@@ -64,31 +59,25 @@ public class ProductService {
                 .toList();
     }
 
-    // =========================
-    // GET BY ID
-    // =========================
     public ProductResponseDTO getById(Long id, String email) {
-
         User user = getUserByEmail(email);
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        checkCompanyAccess(product, user);
+        checkProductCompanyAccess(product, user);
 
         return ProductMapper.toDTO(product);
     }
 
-    // =========================
-    // UPDATE
-    // =========================
     public ProductResponseDTO update(Long id, ProductRequestDTO dto, String email) {
-
         User user = getUserByEmail(email);
-        checkOwner(user);
+        checkOwnerByRole(user);
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
+
+        checkProductCompanyAccess(product, user);
 
         product.setName(dto.getName());
         product.setDescription(dto.getDescription());
@@ -97,43 +86,55 @@ public class ProductService {
         if (dto.getSupplierId() != null) {
             Supplier supplier = supplierRepository.findById(dto.getSupplierId())
                     .orElseThrow(() -> new RuntimeException("Supplier not found"));
+            checkSupplierCompanyAccess(supplier, user);
             product.setSupplier(supplier);
+        } else {
+            product.setSupplier(null);
         }
 
         return ProductMapper.toDTO(productRepository.save(product));
     }
 
-    // =========================
-    // DELETE
-    // =========================
     public void delete(Long id, String email) {
-
         User user = getUserByEmail(email);
-        checkOwner(user);
+        checkOwnerByRole(user);
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
+        checkProductCompanyAccess(product, user);
+
         productRepository.delete(product);
     }
 
-    // =========================
-    // HELPERS
-    // =========================
     private User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    private void checkOwner(User user) {
-        if (!user.getCompany().getOwner().getId().equals(user.getId())) {
-            throw new RuntimeException("Only OWNER allowed");
+    private void checkOwnerByRole(User user) {
+        if (user.getRole() == null || user.getRole().getName() != RoleName.OWNER) {
+            throw new AccessDeniedException("Only OWNER allowed");
         }
     }
 
-    private void checkCompanyAccess(Product product, User user) {
+    private void checkProductCompanyAccess(Product product, User user) {
+        if (product.getCompany() == null || user.getCompany() == null) {
+            throw new AccessDeniedException("Access denied");
+        }
+
         if (!product.getCompany().getId().equals(user.getCompany().getId())) {
-            throw new RuntimeException("Access denied");
+            throw new AccessDeniedException("Access denied");
+        }
+    }
+
+    private void checkSupplierCompanyAccess(Supplier supplier, User user) {
+        if (supplier.getCompany() == null || user.getCompany() == null) {
+            throw new AccessDeniedException("Access denied");
+        }
+
+        if (!supplier.getCompany().getId().equals(user.getCompany().getId())) {
+            throw new AccessDeniedException("Access denied");
         }
     }
 }
