@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.wms.entities.Location;
+import com.example.wms.entities.Shelf;
 import com.example.wms.entities.WareHouse;
 
 public interface LocationRepository extends JpaRepository<Location, Long> {
@@ -17,4 +18,5 @@ public interface LocationRepository extends JpaRepository<Location, Long> {
     Optional<Location> findByIdAndShelf_Id(Long id, Long shelfId);
     void deleteByShelfId(Long shelfId);
     List<Location> findByShelfRackZoneWarehouse_Id(Long warehouseId);
+    int countByShelf(Shelf shelf);
 }

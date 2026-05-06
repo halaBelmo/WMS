@@ -1,5 +1,7 @@
 package com.example.wms.mappers;
 
+import org.springframework.stereotype.Component;
+
 import com.example.wms.dtos.StockMovementRequestDTO;
 import com.example.wms.dtos.StockMovementResponseDTO;
 import com.example.wms.entities.Location;
@@ -7,7 +9,8 @@ import com.example.wms.entities.Product;
 import com.example.wms.entities.StockMovement;
 import com.example.wms.entities.User;
 import com.example.wms.entities.ValidationStatus;
-
+import com.example.wms.events.StockMovementEvent;
+@Component
 public class StockMovementMapper {
 
     public static StockMovement toEntity(
@@ -80,4 +83,54 @@ public class StockMovementMapper {
 
         return dto;
     }
+
+public static StockMovementEvent toEvent(StockMovement sm) {
+
+    StockMovementEvent event = new StockMovementEvent();
+
+    event.setId(sm.getId());
+    event.setProductId(sm.getProduct() != null ? sm.getProduct().getId() : null);
+
+    event.setFromLocationId(
+        sm.getFromLocation() != null ? sm.getFromLocation().getId() : null
+    );
+
+    event.setToLocationId(
+        sm.getToLocation() != null ? sm.getToLocation().getId() : null
+    );
+
+    event.setQuantity(sm.getQuantity());
+
+    event.setMovementType(
+        sm.getMovementType() != null ? sm.getMovementType().name() : null
+    );
+
+    event.setMovementReason(
+        sm.getMovementReason() != null ? sm.getMovementReason().name() : null
+    );
+
+    event.setDestinationType(
+        sm.getDestinationType() != null ? sm.getDestinationType().name() : null
+    );
+
+    event.setDestinationId(sm.getDestinationId());
+
+    event.setStatus(
+        sm.getStatus() != null ? sm.getStatus().name() : null
+    );
+
+    event.setCreatedById(
+        sm.getCreatedBy() != null ? sm.getCreatedBy().getId() : null
+    );
+
+    event.setValidatedById(
+        sm.getValidatedBy() != null ? sm.getValidatedBy().getId() : null
+    );
+
+    event.setCreatedAt(sm.getCreatedAt());
+    event.setValidatedAt(sm.getValidatedAt());
+
+    return event;
+}
+
 }
