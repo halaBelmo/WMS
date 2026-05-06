@@ -14,7 +14,7 @@ export default function WarehouseList({ warehouses, loading, deletingId, onDelet
     <div className={styles.grid}>
       {warehouses.map((warehouse) => (
         <article key={warehouse.id} className={styles.card}>
-          <h4>{warehouse.name}</h4>
+          <h4>{warehouse.code || warehouse.name || `#${warehouse.id}`}</h4>
           <p>{warehouse.location || "No location provided"}</p>
 
           <div className={styles.actions}>

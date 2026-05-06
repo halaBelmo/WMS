@@ -12,6 +12,14 @@ const reasonByMovementType = {
   OUT: ["CUSTOMER_SHIPMENT", "SUPPLIER_RETURN", "OUTGOING_TRANSFER"],
   TRANSFER: ["INTERNAL_TRANSFER"],
 };
+const forcedDestinationTypeByReason = {
+  SUPPLIER_RECEIPT: "SUPPLIER",
+  CUSTOMER_RETURN: "CUSTOMER",
+  INCOMING_TRANSFER: "WAREHOUSE",
+  OUTGOING_TRANSFER: "WAREHOUSE",
+  SUPPLIER_RETURN: "SUPPLIER",
+  CUSTOMER_SHIPMENT: "CUSTOMER",
+};
 
 const initialForm = {
   productId: "",
@@ -40,6 +48,11 @@ function mapNameOptions(data, fallbackPrefix) {
         item.id ?? item.productId ?? item.supplierId ?? item.warehouseId ?? item.customerId
       ),
       name:
+        item.code ||
+        item.productCode ||
+        item.supplierCode ||
+        item.warehouseCode ||
+        item.customerCode ||
         item.name ||
         item.productName ||
         item.supplierName ||
@@ -54,7 +67,7 @@ function mapLocationOptions(data) {
   return extractList(data)
     .map((item) => ({
       id: String(item.id ?? item.locationId),
-      name: item.name || <item className="locationCode"></item> || `Location #${item.id ?? item.locationId}`,
+      name: item.name || item.locationName || `Location #${item.id ?? item.locationId}`,
     }))
     .filter((item) => item.id && item.name);
 }
@@ -68,7 +81,7 @@ function mapWarehouseOptionsFromLocations(data) {
 
     unique.set(id, {
       id,
-      name: item.warehouseName || `Warehouse #${id}`,
+      name: item.warehouseCode || item.warehouseName || `Warehouse #${id}`,
     });
   });
 
@@ -80,7 +93,11 @@ function mapStockEntries(data) {
     .map((item) => ({
       productId: String(item.productId ?? ""),
       locationId: String(item.locationId ?? ""),
-      locationName: item.locationName || `Location #${item.locationId}`,
+      locationCode: item.locationCode || item.location?.code || "",
+      locationName:
+        item.locationName ||
+        item.location?.name ||
+        `Location #${item.locationId}`,
       quantity: Number(item.quantity ?? 0),
     }))
     .filter((item) => item.productId && item.locationId);
@@ -89,9 +106,9 @@ function mapStockEntries(data) {
 function mapPendingMovements(data) {
   return extractList(data).map((item) => ({
     id: item.id,
-    productName: item.productName || "-",
-    fromLocationName: item.fromLocationName || "-",
-    toLocationName: item.toLocationName || "-",
+    productName: item.productCode || item.productName || "-",
+    fromLocationName: item.fromLocationCode || item.fromLocationName || "-",
+    toLocationName: item.toLocationCode || item.toLocationName || "-",
     quantity: item.quantity ?? 0,
     movementType: item.movementType || "-",
     movementReason: item.movementReason || "-",
@@ -154,9 +171,13 @@ export default function StockMovementPage() {
   const partyLabel = form.movementType === "IN" ? "From" : "Destination";
   const partyPlaceholder =
     form.movementType === "IN" ? "Select from" : "Select destination";
-  const allowedDestinationTypes = canCreateMovement
-    ? destinationTypes.filter((type) => type !== "CUSTOMER")
-    : destinationTypes;
+  const forcedDestinationType =
+    forcedDestinationTypeByReason[form.movementReason] || "";
+  const allowedDestinationTypes = forcedDestinationType
+    ? [forcedDestinationType]
+    : canCreateMovement
+      ? destinationTypes.filter((type) => type !== "CUSTOMER")
+      : destinationTypes;
 
   const destinationOptions = useMemo(() => {
     if (form.destinationType === "WAREHOUSE") return warehouses;
@@ -175,9 +196,16 @@ export default function StockMovementPage() {
       .forEach((item) => {
         if (unique.has(item.locationId)) return;
         const locationFromMaster = allLocations.find((loc) => loc.id === item.locationId);
+        const locationLabel =
+          locationFromMaster?.code ||
+          locationFromMaster?.label ||
+          item.locationCode ||
+          locationFromMaster?.name ||
+          item.locationName;
+
         unique.set(item.locationId, {
           id: item.locationId,
-          name: locationFromMaster?.name || item.locationName,
+          label: locationLabel,
         });
       });
 
@@ -251,7 +279,7 @@ export default function StockMovementPage() {
           fetchFirstSuccessful(["/api/locations"]),
           fetchFirstSuccessful(["/api/owner/warehouses"]),
           fetchFirstSuccessful(["/api/owner/suppliers"]),
-          fetchFirstSuccessful(["/api/customers"]),
+          fetchFirstSuccessful(["/api/owner/customers", "/api/customers"]),
         ]);
 
         if (productsResult.status === "fulfilled") {
@@ -313,6 +341,12 @@ export default function StockMovementPage() {
   }, [allowedDestinationTypes, form.destinationType]);
 
   useEffect(() => {
+    if (!forcedDestinationType) return;
+    if (form.destinationType === forcedDestinationType) return;
+    setForm((prev) => ({ ...prev, destinationType: forcedDestinationType }));
+  }, [forcedDestinationType, form.destinationType]);
+
+  useEffect(() => {
     setForm((prev) => {
       const nextDestinationId = destinationOptions.some(
         (option) => option.id === prev.destinationId
@@ -328,6 +362,15 @@ export default function StockMovementPage() {
       };
     });
   }, [destinationOptions]);
+
+  useEffect(() => {
+    if (!forcedDestinationType) return;
+    setForm((prev) => {
+      if (prev.destinationId) return prev;
+      if (!destinationOptions.length) return prev;
+      return { ...prev, destinationId: destinationOptions[0].id };
+    });
+  }, [forcedDestinationType, destinationOptions]);
 
   useEffect(() => {
     setForm((prev) => {
@@ -540,7 +583,7 @@ export default function StockMovementPage() {
                     </option>
                     {fromLocationOptions.map((location) => (
                       <option key={location.id} value={location.id}>
-                        {location.name}
+                        {location.label}
                       </option>
                     ))}
                   </select>
@@ -561,7 +604,7 @@ export default function StockMovementPage() {
                     </option>
                     {toLocationOptions.map((location) => (
                       <option key={location.id} value={location.id}>
-                        {location.name}
+                        {location.label || location.code || location.name}
                       </option>
                     ))}
                   </select>
@@ -588,6 +631,7 @@ export default function StockMovementPage() {
                       value={form.destinationType}
                       onChange={(event) => handleFieldChange("destinationType", event.target.value)}
                       required={showPartySelector}
+                      disabled={Boolean(forcedDestinationType)}
                     >
                       {allowedDestinationTypes.map((type) => (
                         <option key={type} value={type}>

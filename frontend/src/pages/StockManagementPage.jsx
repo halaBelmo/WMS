@@ -2,23 +2,81 @@ import { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
 import StockForm from "../components/StockForm";
 import StockTable from "../components/StockTable";
+import StockSearchPage from "./StockSearchPage";
 import api from "../services/api";
 import styles from "./StockManagementPage.module.css";
 
-function normalizeStocks(data) {
+function extractList(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.content)) return data.content;
+  return [];
+}
+
+function buildLocationCode(item) {
+  const leafName = item.name || item.locationName || "";
+  if (item.zone && item.rack && item.etager && leafName) {
+    return `${item.zone}-${item.rack}-${item.etager}-${leafName}`;
+  }
+  return "";
+}
+
+function buildLocationCodeMap(data) {
+  const locationMap = new Map();
+
+  extractList(data).forEach((item) => {
+    const id = String(item.id ?? item.locationId ?? "");
+    if (!id) return;
+
+    const code = item.code || item.locationCode || buildLocationCode(item) || "";
+    if (!code) return;
+
+    locationMap.set(id, code);
+  });
+
+  return locationMap;
+}
+
+function normalizeLocations(data) {
+  return extractList(data)
+    .map((item) => {
+      const id = String(item.id ?? item.locationId ?? "");
+      const code = item.code || item.locationCode || buildLocationCode(item) || "";
+      const name = item.name || item.locationName || "";
+      const label = code || name || `Location #${id}`;
+
+      return { id, code, name, label };
+    })
+    .filter((item) => item.id);
+}
+
+function normalizeStocks(data, locationCodeMap = new Map()) {
   const list = Array.isArray(data) ? data : data?.data || [];
   return list.map((item) => ({
     id: item.id,
     productId: item.productId,
     productName: item.productName || "-",
     locationId: item.locationId,
+    locationCode:
+      item.locationCode ||
+      item.location?.code ||
+      locationCodeMap.get(String(item.locationId)) ||
+      "",
     locationName: item.locationName || "-",
+    locationLabel:
+      item.locationCode ||
+      item.location?.code ||
+      locationCodeMap.get(String(item.locationId)) ||
+      item.locationName ||
+      "-",
     quantity: item.quantity || 0,
   }));
 }
 
 export default function StockManagementPage() {
   const [stocks, setStocks] = useState([]);
+  const [searchResults, setSearchResults] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [formError, setFormError] = useState("");
@@ -106,7 +164,7 @@ export default function StockManagementPage() {
     setLocationsLoading(true);
     try {
       const response = await api.get(`/api/locations/shelf/${shelfId}`);
-      setLocations(response.data || []);
+      setLocations(normalizeLocations(response.data));
     } catch (err) {
       setError(err.response?.data?.message || "Could not load locations.");
     } finally {
@@ -119,8 +177,13 @@ export default function StockManagementPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await api.get("/api/stocks");
-      setStocks(normalizeStocks(response.data));
+      const [stocksResponse, locationsResponse] = await Promise.all([
+        api.get("/api/stocks"),
+        api.get("/api/locations"),
+      ]);
+
+      const locationCodeMap = buildLocationCodeMap(locationsResponse.data);
+      setStocks(normalizeStocks(stocksResponse.data, locationCodeMap));
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Could not load stocks.");
     } finally {
@@ -188,6 +251,7 @@ export default function StockManagementPage() {
         await api.post("/api/stocks", payload);
       }
       resetForm();
+      setSearchResults(null);
       await loadStocks();
     } catch (requestError) {
       setFormError(requestError.response?.data?.message || "Could not save stock.");
@@ -241,6 +305,7 @@ export default function StockManagementPage() {
 
     try {
       await api.delete(`/api/stocks/${targetStock.id}`);
+      setSearchResults(null);
       await loadStocks();
     } catch (requestError) {
       setError(requestError.response?.data?.message || "Could not delete stock.");
@@ -249,14 +314,16 @@ export default function StockManagementPage() {
     }
   };
 
-  // Filter stocks by selected location
+  // Base table data from stock management hierarchy selection
   const filteredStocks = selectedLocation
     ? stocks.filter((s) => String(s.locationId) === String(selectedLocation))
     : stocks;
 
+  const visibleStocks = Array.isArray(searchResults) ? searchResults : filteredStocks;
+
   // Get selected location name for display
   const selectedLocationName =
-    locations.find((l) => String(l.id) === String(selectedLocation))?.name || "";
+    locations.find((l) => String(l.id) === String(selectedLocation))?.label || "";
 
   return (
     <section className={styles.page}>
@@ -335,7 +402,7 @@ export default function StockManagementPage() {
                 <option value="">-- Choose Location --</option>
                 {locations.map((location) => (
                   <option key={location.id} value={location.id}>
-                    {location.name}
+                    {location.label}
                   </option>
                 ))}
               </select>
@@ -367,12 +434,14 @@ export default function StockManagementPage() {
       {error ? <p className={styles.error}>{error}</p> : null}
 
       <StockTable
-        stocks={filteredStocks}
+        stocks={visibleStocks}
         loading={loading}
         deletingId={deletingId}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
+
+      <StockSearchPage embedded onResultsChange={setSearchResults} />
     </section>
   );
 }

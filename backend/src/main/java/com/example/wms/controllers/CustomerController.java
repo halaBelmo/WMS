@@ -16,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/customers")
+@RequestMapping({"/api/customers", "/api/owner/customers"})
 public class CustomerController {
 
     private final CustomerService customerService;
@@ -32,13 +32,13 @@ public class CustomerController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('ADMIN','ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'ROLE_ADMIN', 'MAGASINIER')")
     public ResponseEntity<List<CustomerResponseDTO>> getAll(Authentication authentication) {
         return ResponseEntity.ok(customerService.getAll(authentication.getName()));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('ADMIN','ROLE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('OWNER', 'ADMIN', 'ROLE_ADMIN', 'MAGASINIER')")
     public ResponseEntity<CustomerResponseDTO> getById(
             @PathVariable Long id,
             Authentication authentication

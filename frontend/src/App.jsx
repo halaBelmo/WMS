@@ -16,7 +16,6 @@ import ShelfManagementPage from "./pages/ShelfManagementPage";
 import SupplierManagementPage from "./pages/SupplierManagementPage";
 import ProductManagementPage from "./pages/ProductManagementPage";
 import StockManagementPage from "./pages/StockManagementPage";
-import StockSearchPage from "./pages/StockSearchPage";
 import StockMovementPage from "./pages/StockMovementPage";
 import CustomerManagementPage from "./pages/CustomerManagementPage";
 
@@ -156,11 +155,7 @@ export default function App() {
           />
           <Route
             path="/stocks/search"
-            element={
-              <ProtectedRoute allowedRoles={["ADMIN"]}>
-                <StockSearchPage />
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/stocks" replace />}
           />
           <Route
             path="/movements"

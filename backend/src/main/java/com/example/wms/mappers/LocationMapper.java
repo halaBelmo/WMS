@@ -23,6 +23,7 @@ public class LocationMapper {
         }
         LocationResponseDTO dto = new LocationResponseDTO();
         dto.setId(location.getId());
+        dto.setCode(location.getCode());
         dto.setName(location.getName() != null ? location.getName() : location.getCode());
         // Populate hierarchy flat fields
         if (location.getShelf() != null) {

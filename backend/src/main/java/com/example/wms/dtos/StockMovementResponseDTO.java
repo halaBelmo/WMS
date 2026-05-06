@@ -18,9 +18,11 @@ public class StockMovementResponseDTO {
     private String productName;
 
     private Long fromLocationId;
+    private String fromLocationCode;
     private String fromLocationName;
 
     private Long toLocationId;
+    private String toLocationCode;
     private String toLocationName;
 
     private Long quantity;
