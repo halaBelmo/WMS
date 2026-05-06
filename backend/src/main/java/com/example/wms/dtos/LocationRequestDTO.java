@@ -7,6 +7,8 @@ import lombok.Setter;
 @Setter
 public class LocationRequestDTO {
 
+    private String code;
+
     private String name;
 
     private String zone;

@@ -34,7 +34,8 @@ public class StockMovementService {
     private final ProductRepository productRepository;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
-
+    private final StockMovementKafkaProducer kafkaProducer;
+    private final StockMovementMapper mapper;
     // Magasinier crée une demande => PENDING
     public StockMovementResponseDTO createMovement(StockMovementRequestDTO dto, String email) {
 
@@ -65,7 +66,7 @@ public class StockMovementService {
             checkLocationCompany(toLocation, company);
         }
 
-        StockMovement movement = StockMovementMapper.toEntity(
+        StockMovement movement = mapper.toEntity(
                 dto,
                 product,
                 fromLocation,
@@ -75,8 +76,14 @@ public class StockMovementService {
 
         movement.setStatus(ValidationStatus.PENDING);
         movement.setCreatedAt(LocalDateTime.now());
+        StockMovement saved = movementRepository.save(movement);
 
-        return StockMovementMapper.toDTO(movementRepository.save(movement));
+// Kafka event
+        kafkaProducer.sendStockMovement(
+        mapper.toEvent(saved)
+);
+ 
+        return mapper.toDTO(saved);
     }
 
     // Admin récupère les mouvements en attente
@@ -124,7 +131,14 @@ public class StockMovementService {
         movement.setValidatedBy(admin);
         movement.setValidatedAt(LocalDateTime.now());
 
-        return StockMovementMapper.toDTO(movementRepository.save(movement));
+        StockMovement saved = movementRepository.save(movement);
+
+// Kafka event
+        kafkaProducer.sendStockMovement(
+        mapper.toEvent(saved)
+);
+
+return mapper.toDTO(saved);
     }
 
     // Admin refuse => stock ne change pas
@@ -145,8 +159,13 @@ public class StockMovementService {
         movement.setValidatedBy(admin);
         movement.setValidatedAt(LocalDateTime.now());
 
-        return StockMovementMapper.toDTO(movementRepository.save(movement));
-    }
+StockMovement saved = movementRepository.save(movement);
+
+kafkaProducer.sendStockMovement(
+    mapper.toEvent(saved)
+);
+
+return mapper.toDTO(saved);    }
 
     // =========================
     // PRIVATE METHODS

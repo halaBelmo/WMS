@@ -7,8 +7,10 @@ import org.springframework.stereotype.Service;
 import com.example.wms.dtos.LocationRequestDTO;
 import com.example.wms.dtos.LocationResponseDTO;
 import com.example.wms.entities.Location;
+import com.example.wms.entities.Rack;
 import com.example.wms.entities.Shelf;
 import com.example.wms.entities.User;
+import com.example.wms.entities.Zone;
 import com.example.wms.mappers.LocationMapper;
 import com.example.wms.repositories.LocationRepository;
 import com.example.wms.repositories.ShelfRepository;
@@ -40,10 +42,22 @@ public class LocationService {
         if (!getWarehouseIdFromShelf(shelf).equals(user.getWarehouse().getId())) {
             throw new RuntimeException("Shelf does not belong to your warehouse");
         }
+       Rack rack = shelf.getRack();
+       Zone zone = rack.getZone();
+
+// user input (ex: L07)
+       String userInput = request.getName();
+
+// build full code
+       String fullCode = zone.getName()
+        + "-" + rack.getCode()
+        + "-" + shelf.getLevel()
+        + "-" + userInput;
 
         Location location = locationMapper.toEntity(request);
         location.setShelf(shelf);
         location.setWarehouse(user.getWarehouse());
+        location.setCode(fullCode);
 
         return locationMapper.toDTO(locationRepository.save(location));
     }
@@ -82,9 +96,14 @@ public class LocationService {
             location.setShelf(shelf);
         }
 
+        String fullCode = location.getShelf().getRack().getZone().getName()
+        + "-" + location.getShelf().getRack().getCode()
+        + "-" + location.getShelf().getLevel()
+        + "-" + location.getName();
+
+        location.setCode(fullCode);
         return locationMapper.toDTO(locationRepository.save(location));
     }
-
     // DELETE
     public void delete(Long id, String username) {
         User user = getUser(username);
