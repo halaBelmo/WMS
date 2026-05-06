@@ -57,7 +57,7 @@ export default function StockForm({
             <option value="">Select product</option>
             {products.map((product) => (
               <option key={product.id} value={product.id}>
-                {product.name}
+                {product.code || product.productCode || product.name || `#${product.id}`}
               </option>
             ))}
           </select>

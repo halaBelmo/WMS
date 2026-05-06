@@ -48,6 +48,11 @@ function mapNameOptions(data, fallbackPrefix) {
         item.id ?? item.productId ?? item.supplierId ?? item.warehouseId ?? item.customerId
       ),
       name:
+        item.code ||
+        item.productCode ||
+        item.supplierCode ||
+        item.warehouseCode ||
+        item.customerCode ||
         item.name ||
         item.productName ||
         item.supplierName ||
@@ -60,11 +65,22 @@ function mapNameOptions(data, fallbackPrefix) {
 
 function mapLocationOptions(data) {
   return extractList(data)
-    .map((item) => ({
-      id: String(item.id ?? item.locationId),
-      name: item.name || item.locationName || `Location #${item.id ?? item.locationId}`,
-    }))
-    .filter((item) => item.id && item.name);
+    .map((item) => {
+      const leafName = item.name || item.locationName || "";
+      const hierarchyCode =
+        item.zone && item.rack && item.etager && leafName
+          ? `${item.zone}-${item.rack}-${item.etager}-${leafName}`
+          : "";
+      const code = item.code || item.locationCode || hierarchyCode || "";
+
+      return {
+        id: String(item.id ?? item.locationId),
+        code,
+        name: leafName,
+        label: code || leafName || `Location #${item.id ?? item.locationId}`,
+      };
+    })
+    .filter((item) => item.id && item.label);
 }
 
 function mapWarehouseOptionsFromLocations(data) {
@@ -76,7 +92,7 @@ function mapWarehouseOptionsFromLocations(data) {
 
     unique.set(id, {
       id,
-      name: item.warehouseName || `Warehouse #${id}`,
+      name: item.warehouseCode || item.warehouseName || `Warehouse #${id}`,
     });
   });
 
@@ -88,7 +104,11 @@ function mapStockEntries(data) {
     .map((item) => ({
       productId: String(item.productId ?? ""),
       locationId: String(item.locationId ?? ""),
-      locationName: item.locationName || `Location #${item.locationId}`,
+      locationCode: item.locationCode || item.location?.code || "",
+      locationName:
+        item.locationName ||
+        item.location?.name ||
+        `Location #${item.locationId}`,
       quantity: Number(item.quantity ?? 0),
     }))
     .filter((item) => item.productId && item.locationId);
@@ -97,9 +117,9 @@ function mapStockEntries(data) {
 function mapPendingMovements(data) {
   return extractList(data).map((item) => ({
     id: item.id,
-    productName: item.productName || "-",
-    fromLocationName: item.fromLocationName || "-",
-    toLocationName: item.toLocationName || "-",
+    productName: item.productCode || item.productName || "-",
+    fromLocationName: item.fromLocationCode || item.fromLocationName || "-",
+    toLocationName: item.toLocationCode || item.toLocationName || "-",
     quantity: item.quantity ?? 0,
     movementType: item.movementType || "-",
     movementReason: item.movementReason || "-",
@@ -187,9 +207,16 @@ export default function StockMovementPage() {
       .forEach((item) => {
         if (unique.has(item.locationId)) return;
         const locationFromMaster = allLocations.find((loc) => loc.id === item.locationId);
+        const locationLabel =
+          locationFromMaster?.code ||
+          locationFromMaster?.label ||
+          item.locationCode ||
+          locationFromMaster?.name ||
+          item.locationName;
+
         unique.set(item.locationId, {
           id: item.locationId,
-          name: locationFromMaster?.name || item.locationName,
+          label: locationLabel,
         });
       });
 
@@ -567,7 +594,7 @@ export default function StockMovementPage() {
                     </option>
                     {fromLocationOptions.map((location) => (
                       <option key={location.id} value={location.id}>
-                        {location.name}
+                        {location.label}
                       </option>
                     ))}
                   </select>
@@ -588,7 +615,7 @@ export default function StockMovementPage() {
                     </option>
                     {toLocationOptions.map((location) => (
                       <option key={location.id} value={location.id}>
-                        {location.name}
+                        {location.label || location.code || location.name}
                       </option>
                     ))}
                   </select>

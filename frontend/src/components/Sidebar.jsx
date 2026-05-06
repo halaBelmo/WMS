@@ -12,7 +12,6 @@ export default function Sidebar() {
     { to: "/suppliers", label: "Suppliers", roles: ["OWNER"] },
     { to: "/products", label: "Products", roles: ["OWNER"] },
     { to: "/stocks", label: "Stocks", roles: ["ADMIN"] },
-    { to: "/stocks/search", label: "Stock Search", roles: ["ADMIN"] },
     { to: "/movements", label: "Movements", roles: ["ADMIN", "MAGASINIER"] },
     { to: "/customers", label: "Customers", roles: ["ADMIN"] },
     { to: "/zones", label: "Zones", roles: ["ADMIN"] },

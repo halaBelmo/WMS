@@ -33,7 +33,12 @@ public class StockMapper {
 
         if (stock.getLocation() != null) {
             dto.setLocationId(stock.getLocation().getId());
-            dto.setLocationName(stock.getLocation().getName());
+            dto.setLocationCode(stock.getLocation().getCode());
+            dto.setLocationName(
+                    stock.getLocation().getName() != null
+                            ? stock.getLocation().getName()
+                            : stock.getLocation().getCode()
+            );
         }
 
         return dto;

@@ -9,6 +9,7 @@ function normalizeWarehouses(data) {
   const list = Array.isArray(data) ? data : data?.warehouses || data?.data || [];
   return list.map((item) => ({
     id: item.id ?? item.warehouseId,
+    code: item.code ?? item.warehouseCode ?? "",
     name: item.name ?? item.warehouseName,
     location: item.location ?? item.address ?? "",
   }));
@@ -62,7 +63,8 @@ export default function WarehouseManagementPage() {
   };
 
   const handleDelete = async (warehouse) => {
-    const confirmed = window.confirm(`Delete warehouse ${warehouse.name}?`);
+    const warehouseLabel = warehouse.code || warehouse.name || `#${warehouse.id}`;
+    const confirmed = window.confirm(`Delete warehouse ${warehouseLabel}?`);
     if (!confirmed) return;
 
     setDeletingId(warehouse.id);

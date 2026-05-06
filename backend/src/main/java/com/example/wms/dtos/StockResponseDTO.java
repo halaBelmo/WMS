@@ -12,6 +12,7 @@ public class StockResponseDTO {
 
     private Long locationId;
     private String locationName;
+    private String locationCode;
 
     private Long quantity;
 }

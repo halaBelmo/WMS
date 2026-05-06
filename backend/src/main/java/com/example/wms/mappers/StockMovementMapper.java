@@ -65,12 +65,22 @@ public class StockMovementMapper {
 
         if (movement.getFromLocation() != null) {
             dto.setFromLocationId(movement.getFromLocation().getId());
-            dto.setFromLocationName(movement.getFromLocation().getName());
+            dto.setFromLocationCode(movement.getFromLocation().getCode());
+            dto.setFromLocationName(
+                    movement.getFromLocation().getName() != null
+                            ? movement.getFromLocation().getName()
+                            : movement.getFromLocation().getCode()
+            );
         }
 
         if (movement.getToLocation() != null) {
             dto.setToLocationId(movement.getToLocation().getId());
-            dto.setToLocationName(movement.getToLocation().getName());
+            dto.setToLocationCode(movement.getToLocation().getCode());
+            dto.setToLocationName(
+                    movement.getToLocation().getName() != null
+                            ? movement.getToLocation().getName()
+                            : movement.getToLocation().getCode()
+            );
         }
 
         if (movement.getCreatedBy() != null) {

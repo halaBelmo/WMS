@@ -48,8 +48,13 @@ function mapStocks(data) {
   const list = Array.isArray(data) ? data : data?.data || [];
   return list.map((item) => ({
     id: item.id,
+    productId: item.productId,
     productName: item.productName || "-",
+    locationId: item.locationId,
+    locationCode: item.locationCode || item.location?.code || "",
     locationName: item.locationName || "-",
+    locationLabel:
+      item.locationCode || item.location?.code || item.locationName || "-",
     quantity: item.quantity ?? 0,
   }));
 }
@@ -70,7 +75,7 @@ function FilterSelect({ label, value, options, onChange, placeholder = "All" }) 
   );
 }
 
-export default function StockSearchPage() {
+export default function StockSearchPage({ embedded = false, onResultsChange }) {
   const [filters, setFilters] = useState(initialFilters);
   const [products, setProducts] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
@@ -196,21 +201,41 @@ export default function StockSearchPage() {
 
     try {
       const response = await api.get("/api/stocks/search", { params: searchParams });
-      setResults(mapStocks(response.data));
+      const mapped = mapStocks(response.data);
+      setResults(mapped);
+      onResultsChange?.(mapped);
     } catch (requestError) {
       setResults([]);
+      onResultsChange?.([]);
       setError(requestError.response?.data?.message || "Could not search stocks.");
     } finally {
       setSearching(false);
     }
   };
 
+  const handleClear = () => {
+    setFilters(initialFilters);
+    setRacks([]);
+    setShelves([]);
+    setResults([]);
+    setHasSearched(false);
+    setError("");
+    onResultsChange?.(null);
+  };
+
   return (
-    <section className={styles.page}>
-      <PageHeader
-        title="Stock Search"
-        subtitle="Search stock by product and warehouse hierarchy."
-      />
+    <section className={embedded ? styles.embedded : styles.page}>
+      {embedded ? (
+        <div className={styles.sectionHeader}>
+          <h3>Stock Search</h3>
+          <p>Search stock by product and warehouse hierarchy.</p>
+        </div>
+      ) : (
+        <PageHeader
+          title="Stock Search"
+          subtitle="Search stock by product and warehouse hierarchy."
+        />
+      )}
 
       <div className={styles.filtersCard}>
         {loadingFilters ? <p className={styles.info}>Loading filters...</p> : null}
@@ -279,6 +304,15 @@ export default function StockSearchPage() {
               <Button onClick={handleSearch} fullWidth={false} disabled={searching}>
                 {searching ? "Searching..." : "Search"}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                fullWidth={false}
+                onClick={handleClear}
+                disabled={searching}
+              >
+                Clear
+              </Button>
             </div>
           </>
         ) : null}
@@ -286,38 +320,50 @@ export default function StockSearchPage() {
 
       {error ? <p className={styles.error}>{error}</p> : null}
 
-      <div className={styles.tableCard}>
-        {searching ? <p className={styles.info}>Searching stock...</p> : null}
+      {embedded && searching ? <p className={styles.info}>Searching stock...</p> : null}
 
-        {!searching && hasSearched && !results.length && !error ? (
-          <p className={styles.info}>No stock results found.</p>
-        ) : null}
+      {embedded && !searching && hasSearched && !error ? (
+        <p className={styles.info}>
+          {results.length
+            ? `Search applied (${results.length} result${results.length > 1 ? "s" : ""}).`
+            : "No stock results found."}
+        </p>
+      ) : null}
 
-        {!searching && results.length ? (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Product Name</th>
-                <th>Location Name</th>
-                <th>Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.productName}</td>
-                  <td>{item.locationName}</td>
-                  <td>{item.quantity}</td>
+      {!embedded ? (
+        <div className={styles.tableCard}>
+          {searching ? <p className={styles.info}>Searching stock...</p> : null}
+
+          {!searching && hasSearched && !results.length && !error ? (
+            <p className={styles.info}>No stock results found.</p>
+          ) : null}
+
+          {!searching && results.length ? (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Product Name</th>
+                  <th>Location Name</th>
+                  <th>Quantity</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : null}
+              </thead>
+              <tbody>
+                {results.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.productName}</td>
+                    <td>{item.locationLabel || item.locationCode || item.locationName}</td>
+                    <td>{item.quantity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : null}
 
-        {!hasSearched && !searching ? (
-          <p className={styles.info}>Set filters and click Search to see results.</p>
-        ) : null}
-      </div>
+          {!hasSearched && !searching ? (
+            <p className={styles.info}>Set filters and click Search to see results.</p>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }
