@@ -12,6 +12,14 @@ const reasonByMovementType = {
   OUT: ["CUSTOMER_SHIPMENT", "SUPPLIER_RETURN", "OUTGOING_TRANSFER"],
   TRANSFER: ["INTERNAL_TRANSFER"],
 };
+const forcedDestinationTypeByReason = {
+  SUPPLIER_RECEIPT: "SUPPLIER",
+  CUSTOMER_RETURN: "CUSTOMER",
+  INCOMING_TRANSFER: "WAREHOUSE",
+  OUTGOING_TRANSFER: "WAREHOUSE",
+  SUPPLIER_RETURN: "SUPPLIER",
+  CUSTOMER_SHIPMENT: "CUSTOMER",
+};
 
 const initialForm = {
   productId: "",
@@ -154,9 +162,13 @@ export default function StockMovementPage() {
   const partyLabel = form.movementType === "IN" ? "From" : "Destination";
   const partyPlaceholder =
     form.movementType === "IN" ? "Select from" : "Select destination";
-  const allowedDestinationTypes = canCreateMovement
-    ? destinationTypes.filter((type) => type !== "CUSTOMER")
-    : destinationTypes;
+  const forcedDestinationType =
+    forcedDestinationTypeByReason[form.movementReason] || "";
+  const allowedDestinationTypes = forcedDestinationType
+    ? [forcedDestinationType]
+    : canCreateMovement
+      ? destinationTypes.filter((type) => type !== "CUSTOMER")
+      : destinationTypes;
 
   const destinationOptions = useMemo(() => {
     if (form.destinationType === "WAREHOUSE") return warehouses;
@@ -251,7 +263,7 @@ export default function StockMovementPage() {
           fetchFirstSuccessful(["/api/locations"]),
           fetchFirstSuccessful(["/api/owner/warehouses"]),
           fetchFirstSuccessful(["/api/owner/suppliers"]),
-          fetchFirstSuccessful(["/api/customers"]),
+          fetchFirstSuccessful(["/api/owner/customers", "/api/customers"]),
         ]);
 
         if (productsResult.status === "fulfilled") {
@@ -313,6 +325,12 @@ export default function StockMovementPage() {
   }, [allowedDestinationTypes, form.destinationType]);
 
   useEffect(() => {
+    if (!forcedDestinationType) return;
+    if (form.destinationType === forcedDestinationType) return;
+    setForm((prev) => ({ ...prev, destinationType: forcedDestinationType }));
+  }, [forcedDestinationType, form.destinationType]);
+
+  useEffect(() => {
     setForm((prev) => {
       const nextDestinationId = destinationOptions.some(
         (option) => option.id === prev.destinationId
@@ -328,6 +346,15 @@ export default function StockMovementPage() {
       };
     });
   }, [destinationOptions]);
+
+  useEffect(() => {
+    if (!forcedDestinationType) return;
+    setForm((prev) => {
+      if (prev.destinationId) return prev;
+      if (!destinationOptions.length) return prev;
+      return { ...prev, destinationId: destinationOptions[0].id };
+    });
+  }, [forcedDestinationType, destinationOptions]);
 
   useEffect(() => {
     setForm((prev) => {
@@ -588,6 +615,7 @@ export default function StockMovementPage() {
                       value={form.destinationType}
                       onChange={(event) => handleFieldChange("destinationType", event.target.value)}
                       required={showPartySelector}
+                      disabled={Boolean(forcedDestinationType)}
                     >
                       {allowedDestinationTypes.map((type) => (
                         <option key={type} value={type}>

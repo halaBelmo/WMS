@@ -135,17 +135,21 @@ public class WareHouseServiceImpl implements WareHouseService {
 
     public List<WareHouseDTO> getCompanyWareHouses(String ownerEmail) {
 
-        User owner = userRepository.findByEmail(ownerEmail)
+        User user = userRepository.findByEmail(ownerEmail)
 
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
-        if (owner.getRole() == null || owner.getRole().getName() != RoleName.OWNER) {
+        if (user.getRole() == null || (
+                user.getRole().getName() != RoleName.OWNER &&
+                user.getRole().getName() != RoleName.ADMIN &&
+                user.getRole().getName() != RoleName.MAGASINIER
+        )) {
 
-            throw new RuntimeException("Access denied: only OWNER can view warehouses");
+            throw new RuntimeException("Access denied: only OWNER/ADMIN/MAGASINIER can view warehouses");
 
         }
 
-        return wareHouseRepository.findByCompany(owner.getCompany())
+        return wareHouseRepository.findByCompany(user.getCompany())
 
                 .stream()
 
