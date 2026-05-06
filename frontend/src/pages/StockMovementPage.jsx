@@ -54,7 +54,7 @@ function mapLocationOptions(data) {
   return extractList(data)
     .map((item) => ({
       id: String(item.id ?? item.locationId),
-      name: item.name || item.locationName || `Location #${item.id ?? item.locationId}`,
+      name: item.name || <item className="locationCode"></item> || `Location #${item.id ?? item.locationId}`,
     }))
     .filter((item) => item.id && item.name);
 }
