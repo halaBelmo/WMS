@@ -67,7 +67,22 @@ function mapLocationOptions(data) {
   return extractList(data)
     .map((item) => ({
       id: String(item.id ?? item.locationId),
-      name: item.name || item.locationName || `Location #${item.id ?? item.locationId}`,
+      code: item.code || item.locationCode || "",
+      name:
+        item.name ||
+        item.locationName ||
+        item.code ||
+        item.locationCode ||
+        `Location #${item.id ?? item.locationId}`,
+      label: (() => {
+        const id = String(item.id ?? item.locationId ?? "");
+        const code = item.code || item.locationCode || "";
+        const name = item.name || item.locationName || "";
+        if (code && name && code !== name) return `${code} (${name})`;
+        if (code) return code;
+        if (name) return `${name}${id ? ` (#${id})` : ""}`;
+        return `Location #${id}`;
+      })(),
     }))
     .filter((item) => item.id && item.name);
 }
@@ -91,13 +106,15 @@ function mapWarehouseOptionsFromLocations(data) {
 function mapStockEntries(data) {
   return extractList(data)
     .map((item) => ({
-      productId: String(item.productId ?? ""),
-      locationId: String(item.locationId ?? ""),
+      productId: String(item.productId ?? item.product?.id ?? ""),
+      locationId: String(item.locationId ?? item.location?.id ?? ""),
       locationCode: item.locationCode || item.location?.code || "",
       locationName:
         item.locationName ||
         item.location?.name ||
-        `Location #${item.locationId}`,
+        item.locationCode ||
+        item.location?.code ||
+        `Location #${item.locationId ?? item.location?.id}`,
       quantity: Number(item.quantity ?? 0),
     }))
     .filter((item) => item.productId && item.locationId);
@@ -205,7 +222,9 @@ export default function StockMovementPage() {
 
         unique.set(item.locationId, {
           id: item.locationId,
-          label: locationLabel,
+          label: locationLabel
+            ? `${locationLabel}${item.locationId ? ` (#${item.locationId})` : ""}`
+            : `Location #${item.locationId}`,
         });
       });
 
@@ -214,10 +233,41 @@ export default function StockMovementPage() {
 
   const toLocationOptions = useMemo(() => {
     if (!showToLocation || !form.productId) return [];
+    const productLocations = (() => {
+      const unique = new Map();
+      stocks
+        .filter((item) => item.productId === form.productId)
+        .forEach((item) => {
+          if (unique.has(item.locationId)) return;
+          const locationFromMaster = allLocations.find((loc) => loc.id === item.locationId);
+          const baseLabel =
+            locationFromMaster?.label ||
+            locationFromMaster?.code ||
+            item.locationCode ||
+            locationFromMaster?.name ||
+            item.locationName;
+          unique.set(item.locationId, {
+            id: item.locationId,
+            label: baseLabel
+              ? `${baseLabel}${item.locationId ? ` (#${item.locationId})` : ""}`
+              : `Location #${item.locationId}`,
+            code: locationFromMaster?.code || item.locationCode || "",
+            name: locationFromMaster?.name || item.locationName || "",
+          });
+        });
+      return Array.from(unique.values());
+    })();
+
+    if (form.movementType === "IN") {
+      return productLocations.length ? productLocations : allLocations;
+    }
     if (form.movementType !== "TRANSFER") return allLocations;
 
-    return allLocations.filter((location) => location.id !== form.fromLocationId);
-  }, [showToLocation, form.productId, form.movementType, allLocations, form.fromLocationId]);
+    const transferTargets = (productLocations.length ? productLocations : allLocations).filter(
+      (location) => location.id !== form.fromLocationId
+    );
+    return transferTargets;
+  }, [showToLocation, form.productId, form.movementType, allLocations, stocks, form.fromLocationId]);
 
   const destinationMaps = useMemo(
     () => ({

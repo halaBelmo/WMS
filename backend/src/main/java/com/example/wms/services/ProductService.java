@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.wms.dtos.ProductRequestDTO;
 import com.example.wms.dtos.ProductResponseDTO;
@@ -14,6 +15,8 @@ import com.example.wms.entities.Supplier;
 import com.example.wms.entities.User;
 import com.example.wms.mappers.ProductMapper;
 import com.example.wms.repositories.ProductRepository;
+import com.example.wms.repositories.StockMovementRepository;
+import com.example.wms.repositories.StockRepository;
 import com.example.wms.repositories.SupplierRepository;
 import com.example.wms.repositories.UserRepository;
 
@@ -24,6 +27,8 @@ import lombok.RequiredArgsConstructor;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final StockRepository stockRepository;
+    private final StockMovementRepository stockMovementRepository;
     private final SupplierRepository supplierRepository;
     private final UserRepository userRepository;
 
@@ -95,6 +100,7 @@ public class ProductService {
         return ProductMapper.toDTO(productRepository.save(product));
     }
 
+    @Transactional
     public void delete(Long id, String email) {
         User user = getUserByEmail(email);
         checkOwnerByRole(user);
@@ -104,6 +110,8 @@ public class ProductService {
 
         checkProductCompanyAccess(product, user);
 
+        stockMovementRepository.deleteByProductId(product.getId());
+        stockRepository.deleteByProductId(product.getId());
         productRepository.delete(product);
     }
 

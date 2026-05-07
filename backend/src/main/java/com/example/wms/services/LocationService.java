@@ -120,7 +120,7 @@ public class LocationService {
     public List<LocationResponseDTO> getByWarehouse(String username) {
         User user = getUser(username);
 
-        return locationRepository.findByShelfRackZoneWarehouse_Id(user.getWarehouse().getId())
+        return locationRepository.findByWarehouseId(user.getWarehouse().getId())
                 .stream()
                 .map(locationMapper::toDTO)
                 .toList();
@@ -153,6 +153,9 @@ public class LocationService {
     }
 
     private Long getWarehouseIdFromLocation(Location location) {
+        if (location.getWarehouse() != null && location.getWarehouse().getId() != null) {
+            return location.getWarehouse().getId();
+        }
         Shelf shelf = location.getShelf();
         if (shelf == null) throw new RuntimeException("Location has no shelf");
         return getWarehouseIdFromShelf(shelf);

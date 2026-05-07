@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.wms.entities.Stock;
 
@@ -41,4 +42,6 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
             Long shelfId
     );
     Optional<Stock> findByProductIdAndLocationId(Long productId, Long locationId);
+    @Transactional
+    void deleteByProductId(Long productId);
 }
