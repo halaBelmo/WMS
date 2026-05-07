@@ -1,5 +1,4 @@
-version: '3.8'
-
+version: '3'
 services:
 
   zookeeper:
@@ -17,18 +16,74 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
+      - "29092:29092"
     environment:
-
       KAFKA_BROKER_ID: 1
-
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
-
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
-
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-
+      # Setup separate listeners for Docker internal network vs Host network (Spring Boot)
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    ports:
+      - "9870:9870"
+      - "8020:8020"
+    environment:
+      CLUSTER_NAME: wms-cluster
+      CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+    volumes:
+      - namenode:/hadoop/dfs/name
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    depends_on:
+      - namenode
+    environment:
+      CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+    volumes:
+      - datanode:/hadoop/dfs/data
+
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.5.0
+    container_name: kafka-connect
+    depends_on:
+      - kafka
+      - namenode
+      - datanode
+    ports:
+      - "8083:8083"
+    environment:
+      # Connect to Kafka using the internal Docker listener
+      CONNECT_BOOTSTRAP_SERVERS: kafka:29092
+      CONNECT_REST_PORT: 8083
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_GROUP_ID: wms-connect-group
+
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-status
+
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+
+      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components
+    # Automatically install the HDFS 3 Connector on startup
+    command: >
+      bash -c '
+      confluent-hub install --no-prompt confluentinc/kafka-connect-hdfs3:latest &&
+      /etc/confluent/docker/run'
+
+volumes:
+  namenode:
+  datanode:
