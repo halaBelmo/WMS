@@ -19,6 +19,6 @@ public class StockMovementKafkaProducer {
     "stock-movements",
     event.getProductId().toString(),
     event
-);
+    );
     }
 }

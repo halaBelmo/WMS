@@ -65,22 +65,11 @@ function mapNameOptions(data, fallbackPrefix) {
 
 function mapLocationOptions(data) {
   return extractList(data)
-    .map((item) => {
-      const leafName = item.name || item.locationName || "";
-      const hierarchyCode =
-        item.zone && item.rack && item.etager && leafName
-          ? `${item.zone}-${item.rack}-${item.etager}-${leafName}`
-          : "";
-      const code = item.code || item.locationCode || hierarchyCode || "";
-
-      return {
-        id: String(item.id ?? item.locationId),
-        code,
-        name: leafName,
-        label: code || leafName || `Location #${item.id ?? item.locationId}`,
-      };
-    })
-    .filter((item) => item.id && item.label);
+    .map((item) => ({
+      id: String(item.id ?? item.locationId),
+      name: item.name || item.locationName || `Location #${item.id ?? item.locationId}`,
+    }))
+    .filter((item) => item.id && item.name);
 }
 
 function mapWarehouseOptionsFromLocations(data) {
