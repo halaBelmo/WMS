@@ -94,53 +94,71 @@ public class StockMovementMapper {
         return dto;
     }
 
-public static StockMovementEvent toEvent(StockMovement sm) {
+    public static StockMovementEvent toEvent(StockMovement sm) {
 
-    StockMovementEvent event = new StockMovementEvent();
+        StockMovementEvent event = new StockMovementEvent();
 
-    event.setId(sm.getId());
-    event.setProductId(sm.getProduct() != null ? sm.getProduct().getId() : null);
+        event.setId(sm.getId());
+        event.setProductId(sm.getProduct() != null ? sm.getProduct().getId() : null);
 
-    event.setFromLocationId(
-        sm.getFromLocation() != null ? sm.getFromLocation().getId() : null
-    );
+        // ==========================================
+        // 🎯 NOUVEAU : RÉCUPÉRATION DU WAREHOUSE ID
+        // ==========================================
+        Long warehouseId = null;
 
-    event.setToLocationId(
-        sm.getToLocation() != null ? sm.getToLocation().getId() : null
-    );
+        // 1. On regarde d'abord l'emplacement d'arrivée (ex: Entrées IN)
+        if (sm.getToLocation() != null && sm.getToLocation().getWarehouse() != null) {
+            warehouseId = sm.getToLocation().getWarehouse().getId();
+        }
+        // 2. Sinon on regarde l'emplacement de départ (ex: Sorties OUT)
+        else if (sm.getFromLocation() != null && sm.getFromLocation().getWarehouse() != null) {
+            warehouseId = sm.getFromLocation().getWarehouse().getId();
+        }
 
-    event.setQuantity(sm.getQuantity());
+        // On affecte l'ID de l'entrepôt à l'événement Kafka
+        event.setWarehouseId(warehouseId);
+        // ==========================================
 
-    event.setMovementType(
-        sm.getMovementType() != null ? sm.getMovementType().name() : null
-    );
+        event.setFromLocationId(
+                sm.getFromLocation() != null ? sm.getFromLocation().getId() : null
+        );
 
-    event.setMovementReason(
-        sm.getMovementReason() != null ? sm.getMovementReason().name() : null
-    );
+        event.setToLocationId(
+                sm.getToLocation() != null ? sm.getToLocation().getId() : null
+        );
 
-    event.setDestinationType(
-        sm.getDestinationType() != null ? sm.getDestinationType().name() : null
-    );
+        event.setQuantity(sm.getQuantity());
 
-    event.setDestinationId(sm.getDestinationId());
+        event.setMovementType(
+                sm.getMovementType() != null ? sm.getMovementType().name() : null
+        );
 
-    event.setStatus(
-        sm.getStatus() != null ? sm.getStatus().name() : null
-    );
+        event.setMovementReason(
+                sm.getMovementReason() != null ? sm.getMovementReason().name() : null
+        );
 
-    event.setCreatedById(
-        sm.getCreatedBy() != null ? sm.getCreatedBy().getId() : null
-    );
+        event.setDestinationType(
+                sm.getDestinationType() != null ? sm.getDestinationType().name() : null
+        );
 
-    event.setValidatedById(
-        sm.getValidatedBy() != null ? sm.getValidatedBy().getId() : null
-    );
+        event.setDestinationId(sm.getDestinationId());
 
-    event.setCreatedAt(sm.getCreatedAt());
-    event.setValidatedAt(sm.getValidatedAt());
+        event.setStatus(
+                sm.getStatus() != null ? sm.getStatus().name() : null
+        );
 
-    return event;
-}
+        event.setCreatedById(
+                sm.getCreatedBy() != null ? sm.getCreatedBy().getId() : null
+        );
+
+        event.setValidatedById(
+                sm.getValidatedBy() != null ? sm.getValidatedBy().getId() : null
+        );
+
+        event.setCreatedAt(sm.getCreatedAt());
+        event.setValidatedAt(sm.getValidatedAt());
+
+        return event;
+    }
 
 }

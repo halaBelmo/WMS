@@ -21,7 +21,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
@@ -32,22 +31,29 @@ public class JwtFilter extends OncePerRequestFilter {
     ApplicationContext context;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException,IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getServletPath();
 
+        // 1. On ignore les routes d'authentification (login/register)
         if (path.startsWith("/api/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }
+
         String authHeader = request.getHeader("Authorization");
+        System.out.println("🛑 HEADER BRUT REÇU : " + authHeader); // <--- AJOUTE CETTE LIGNE
         String token = null;
         String email = null;
 
+        // 2. On récupère et vérifie la présence du Token
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
+            System.out.println("🛑 1. TOKEN REÇU : " + token);
+
             try {
                 email = jwtService.extractEmail(token);
+                System.out.println("🛑 2. EMAIL EXTRAIT : " + email);
             } catch (ExpiredJwtException e) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
@@ -59,16 +65,17 @@ public class JwtFilter extends OncePerRequestFilter {
                 response.getWriter().write("{\"message\":\"Invalid JWT token.\"}");
                 return;
             }
-
         }
 
-
-        if(email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        // 3. On valide l'utilisateur si on a un email
+        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = context.getBean(CustomUserDetailsService.class).loadUserByUsername(email);
 
-            // validation de token 
-            if (jwtService.validateToken(token, userDetails)) {
-                // Load user details and set authentication
+            boolean isValid = jwtService.validateToken(token, userDetails);
+            System.out.println("🛑 3. LE TOKEN EST-IL VALIDE ? : " + isValid);
+
+            if (isValid) {
+                System.out.println("🛑 4. AUTHENTIFICATION RÉUSSIE !");
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities()
                 );
@@ -76,9 +83,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
+
+        // TRÈS IMPORTANT : Cette ligne doit TOUJOURS être à la fin, en dehors des "if" !
         filterChain.doFilter(request, response);
-
     }
-
-
 }

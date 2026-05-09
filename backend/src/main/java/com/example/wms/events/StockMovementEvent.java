@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 
 @Getter
@@ -18,6 +19,7 @@ public class StockMovementEvent {
 
     private Long id;
     private Long productId;
+    private Long warehouseId; // <-- NOUVELLE COLONNE : L'entrepôt global
 
     private Long fromLocationId;
     private Long toLocationId;
@@ -35,7 +37,12 @@ public class StockMovementEvent {
     private Long createdById;
     private Long validatedById;
 
+    // ... tes autres attributs ...
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime validatedAt;
 
 }
