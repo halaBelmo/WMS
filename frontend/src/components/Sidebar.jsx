@@ -18,6 +18,7 @@ export default function Sidebar() {
     { to: "/racks", label: "Racks", roles: ["ADMIN"] },
     { to: "/shelves", label: "Shelves", roles: ["ADMIN"] },
     { to: "/locations", label: "Locations", roles: ["ADMIN"] },
+    { to: "/analytics", label: "📊 Analytics", roles: ["OWNER", "ADMIN"] },
   ];
 
   const visibleLinks = links.filter((link) => link.roles.includes(role));

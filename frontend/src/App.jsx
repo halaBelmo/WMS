@@ -18,7 +18,7 @@ import ProductManagementPage from "./pages/ProductManagementPage";
 import StockManagementPage from "./pages/StockManagementPage";
 import StockMovementPage from "./pages/StockMovementPage";
 import CustomerManagementPage from "./pages/CustomerManagementPage";
-
+import AnalyticsPage from "./pages/AnalyticsPage";
 import "./styles/global.css";
 
 function PublicOnlyRoute({ children }) {
@@ -76,7 +76,14 @@ export default function App() {
           </PublicOnlyRoute>
         }
       />
-
+    <Route
+  path="/analytics"
+  element={
+    <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
+      <AnalyticsPage />
+    </ProtectedRoute>
+  }
+/>
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
