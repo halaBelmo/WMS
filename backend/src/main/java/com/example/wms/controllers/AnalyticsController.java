@@ -82,6 +82,24 @@ public ResponseEntity<List<Map<String, Object>>> getDormantProducts(
 
     return ResponseEntity.ok(hive.queryForList(sql));
 }
+@GetMapping("/{warehouseId}/retours-clients")
+public ResponseEntity<List<Map<String, Object>>> getRetoursClients(
+        @PathVariable int warehouseId,
+        @RequestParam(defaultValue = "30") int jours) {
+
+    String sql =
+        "SELECT productname AS produit, " +
+        "SUM(nb_transactions) AS nombre_retours " +
+        "FROM warehouse_analytics_gold " +
+        "WHERE warehouseid = " + warehouseId + " " +
+        "AND status = 'VALIDATED' " +
+        "AND movementreason = 'CUSTOMER_RETURN' " +   // 🔥 adapte si ton champ est différent
+        "AND stat_date >= date_sub(current_date(), " + jours + ") " +
+        "GROUP BY productname " +
+        "ORDER BY nombre_retours DESC";
+
+    return ResponseEntity.ok(hive.queryForList(sql));
+}
     // ==========================================
     // B. Top 10 Entrées (Bar Chart) — Hive
     // ==========================================
