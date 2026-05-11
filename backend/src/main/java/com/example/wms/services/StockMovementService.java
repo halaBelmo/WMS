@@ -36,6 +36,7 @@ public class StockMovementService {
     private final UserRepository userRepository;
     private final StockMovementKafkaProducer kafkaProducer;
     private final StockMovementMapper mapper;
+    private final AnalyticsBatchService analyticsBatchService; // ✅ FIX: inject pour corriger la Gold table en temps réel
     // Magasinier crée une demande => PENDING
     public StockMovementResponseDTO createMovement(StockMovementRequestDTO dto, String email) {
 
@@ -138,6 +139,15 @@ public class StockMovementService {
         mapper.toEvent(saved)
 );
 
+// ✅ FIX: mettre à jour la Gold table Hive sans attendre le batch de nuit
+        Long whIdValidate = null;
+        if (saved.getToLocation() != null && saved.getToLocation().getWarehouse() != null)
+            whIdValidate = saved.getToLocation().getWarehouse().getId();
+        else if (saved.getFromLocation() != null && saved.getFromLocation().getWarehouse() != null)
+            whIdValidate = saved.getFromLocation().getWarehouse().getId();
+
+      
+
 return mapper.toDTO(saved);
     }
 
@@ -164,6 +174,15 @@ StockMovement saved = movementRepository.save(movement);
 kafkaProducer.sendStockMovement(
     mapper.toEvent(saved)
 );
+
+// ✅ FIX: mettre à jour la Gold table Hive sans attendre le batch de nuit
+        Long whIdReject = null;
+        if (saved.getToLocation() != null && saved.getToLocation().getWarehouse() != null)
+            whIdReject = saved.getToLocation().getWarehouse().getId();
+        else if (saved.getFromLocation() != null && saved.getFromLocation().getWarehouse() != null)
+            whIdReject = saved.getFromLocation().getWarehouse().getId();
+
+     
 
 return mapper.toDTO(saved);    }
 

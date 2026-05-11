@@ -20,6 +20,7 @@ public class StockMovementEvent {
 
     private Long id;
     private Long productId;
+    private String productName; // <-- Nom du produit pour Hive (évite le join)
     private Long warehouseId; // <-- NOUVELLE COLONNE : L'entrepôt global
 
     private Long fromLocationId;

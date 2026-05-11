@@ -1,71 +1,83 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/PageHeader";
 import styles from "./AnalyticsPage.module.css";
-import api from "../services/api"; // ✅ FIX 1 : utiliser api.js qui injecte le JWT
+import api from "../services/api";
 
 const ANALYTICS = "/api/analytics";
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── Data hook ────────────────────────────────────────────────────────────────
 function useAnalytics(warehouseId, jours) {
-  const [topSorties, setTopSorties] = useState([]);
-  const [kpi, setKpi] = useState(null);
-  const [ratioInOut, setRatioInOut] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [topSorties, setTopSorties]   = useState([]);
+  const [topEntrees, setTopEntrees]   = useState([]);
+  const [ratioInOut, setRatioInOut]   = useState([]);
+  const [loading,    setLoading]      = useState(false);
+  const [error,      setError]        = useState(null);
 
-  useEffect(() => {
+  const fetchAll = useCallback(() => {
     if (!warehouseId) return;
     setLoading(true);
     setError(null);
 
-    // ✅ FIX 2 : api.get() au lieu de fetch() brut → le JWT est envoyé automatiquement
     Promise.all([
       api.get(`${ANALYTICS}/${warehouseId}/top-sorties?jours=${jours}`),
-      api.get(`${ANALYTICS}/${warehouseId}/kpi-global?jours=${jours}`),
+      api.get(`${ANALYTICS}/${warehouseId}/top-entrees?jours=${jours}`),
       api.get(`${ANALYTICS}/${warehouseId}/ratio-in-out?jours=${jours}`),
     ])
-      .then(([sortiesRes, kpiRes, ratioRes]) => {
+      .then(([sortiesRes, entreesRes, ratioRes]) => {
         setTopSorties(sortiesRes.data ?? []);
-        // ✅ FIX 3 : protéger contre null retourné par Hive si aucune donnée
-        setKpi(kpiRes.data ?? {});
-        setRatioInOut(ratioRes.data ?? []);
+        setTopEntrees(entreesRes.data ?? []);
+        setRatioInOut(ratioRes.data   ?? []);
       })
       .catch((e) => {
-        // ✅ FIX 4 : message d'erreur plus précis (axios expose e.response)
-        const msg =
-          e.response?.status === 401
-            ? "Non autorisé — vérifiez votre connexion"
-            : e.response?.data?.message ?? e.message;
-        setError(msg);
+        const status = e.response?.status;
+        if (status === 403 || status === 401) {
+          setError("Session expirée ou non autorisé — reconnectez-vous.");
+        } else {
+          setError(e.response?.data?.message ?? e.message ?? "Erreur inconnue");
+        }
       })
       .finally(() => setLoading(false));
   }, [warehouseId, jours]);
 
-  return { topSorties, kpi, ratioInOut, loading, error };
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  return { topSorties, topEntrees, ratioInOut, loading, error, refetch: fetchAll };
 }
 
-// ── Mini bar chart (SVG, no lib needed) ─────────────────────────────────────
-function BarChart({ data, valueKey = "total", labelKey = "productName" }) {
-  if (!data.length) return <p className={styles.empty}>Aucune donnée</p>;
-  const max = Math.max(...data.map((d) => Number(d[valueKey])));
+// ── Bar chart ─────────────────────────────────────────────────────────────────
+function BarChart({ data, valueKey = "total", labelKey = "productname", color = "orange" }) {
+  if (!data || data.length === 0)
+    return <p className={styles.empty}>Aucune donnée disponible pour cette période.</p>;
+
+  const max = Math.max(...data.map((d) => Number(d[valueKey]) || 0));
+  const gradients = {
+    orange: ["#f97316", "#fb923c"],
+    blue:   ["#3b82f6", "#60a5fa"],
+  };
+  const [c1, c2] = gradients[color] ?? gradients.orange;
 
   return (
     <div className={styles.barChart}>
       {data.map((item, i) => {
-        const pct = Math.round((Number(item[valueKey]) / max) * 100);
+        const val = Number(item[valueKey]) || 0;
+        const pct = max > 0 ? Math.round((val / max) * 100) : 0;
         return (
           <div key={i} className={styles.barRow}>
             <span className={styles.barLabel} title={item[labelKey]}>
-              {item[labelKey]}
+              {item[labelKey] ?? "—"}
             </span>
             <div className={styles.barTrack}>
               <div
                 className={styles.barFill}
-                style={{ width: `${pct}%` }}
+                style={{
+                  width: `${pct}%`,
+                  background: `linear-gradient(90deg, ${c1}, ${c2})`,
+                  animationDelay: `${i * 60}ms`,
+                }}
               />
             </div>
-            <span className={styles.barValue}>{Number(item[valueKey]).toLocaleString()}</span>
+            <span className={styles.barValue}>{val.toLocaleString()}</span>
           </div>
         );
       })}
@@ -73,34 +85,29 @@ function BarChart({ data, valueKey = "total", labelKey = "productName" }) {
   );
 }
 
-// ── Donut chart (SVG) ────────────────────────────────────────────────────────
+// ── Donut chart ───────────────────────────────────────────────────────────────
 function DonutChart({ data }) {
-  if (!data.length) return <p className={styles.empty}>Aucune donnée</p>;
+  if (!data || data.length === 0)
+    return <p className={styles.empty}>Aucune donnée disponible.</p>;
 
   const COLORS = { IN: "#3b82f6", OUT: "#f97316", TRANSFER: "#8b5cf6" };
-  const total = data.reduce((s, d) => s + Number(d.nb), 0);
-  const R = 60;
-  const CX = 80;
-  const CY = 80;
-  const r_inner = 35;
+  const total = data.reduce((s, d) => s + Number(d.nb || 0), 0);
+  const R = 60, r_inner = 35, CX = 80, CY = 80;
 
   let startAngle = -Math.PI / 2;
   const slices = data.map((d) => {
-    const angle = (Number(d.nb) / total) * 2 * Math.PI;
+    const angle = total > 0 ? (Number(d.nb) / total) * 2 * Math.PI : 0;
     const slice = { ...d, startAngle, endAngle: startAngle + angle };
     startAngle += angle;
     return slice;
   });
 
   function arc(cx, cy, R, r, sa, ea) {
-    const x1 = cx + R * Math.cos(sa);
-    const y1 = cy + R * Math.sin(sa);
-    const x2 = cx + R * Math.cos(ea);
-    const y2 = cy + R * Math.sin(ea);
-    const ix1 = cx + r * Math.cos(ea);
-    const iy1 = cy + r * Math.sin(ea);
-    const ix2 = cx + r * Math.cos(sa);
-    const iy2 = cy + r * Math.sin(sa);
+    if (Math.abs(ea - sa) < 0.001) return "";
+    const x1  = cx + R * Math.cos(sa), y1  = cy + R * Math.sin(sa);
+    const x2  = cx + R * Math.cos(ea), y2  = cy + R * Math.sin(ea);
+    const ix1 = cx + r * Math.cos(ea), iy1 = cy + r * Math.sin(ea);
+    const ix2 = cx + r * Math.cos(sa), iy2 = cy + r * Math.sin(sa);
     const large = ea - sa > Math.PI ? 1 : 0;
     return `M${x1},${y1} A${R},${R},0,${large},1,${x2},${y2} L${ix1},${iy1} A${r},${r},0,${large},0,${ix2},${iy2} Z`;
   }
@@ -116,7 +123,7 @@ function DonutChart({ data }) {
           />
         ))}
         <text x={CX} y={CY - 5} textAnchor="middle" className={styles.donutCenter}>
-          {total}
+          {total.toLocaleString()}
         </text>
         <text x={CX} y={CY + 14} textAnchor="middle" className={styles.donutSub}>
           total
@@ -125,12 +132,14 @@ function DonutChart({ data }) {
       <div className={styles.legend}>
         {slices.map((s, i) => (
           <div key={i} className={styles.legendItem}>
-            <span
-              className={styles.legendDot}
-              style={{ background: COLORS[s.type] ?? "#94a3b8" }}
-            />
+            <span className={styles.legendDot} style={{ background: COLORS[s.type] ?? "#94a3b8" }} />
             <span>
-              {s.type} — <strong>{s.pourcentage ?? Math.round((Number(s.nb) / total) * 100)}%</strong>
+              {s.type} —{" "}
+              <strong>
+                {s.pourcentage ??
+                  (total > 0 ? Math.round((Number(s.nb) / total) * 100) : 0)}
+                %
+              </strong>
             </span>
           </div>
         ))}
@@ -139,27 +148,88 @@ function DonutChart({ data }) {
   );
 }
 
-// ── KPI card ─────────────────────────────────────────────────────────────────
-function KpiCard({ icon, label, value, color }) {
+// ── Force-batch button ────────────────────────────────────────────────────────
+function ForceBatchButton({ onSuccess }) {
+  const [busy,   setBusy]   = useState(false);
+  const [status, setStatus] = useState(null); // null | "ok" | "err"
+  const [msg,    setMsg]    = useState("");
+
+  const handleClick = async () => {
+    setBusy(true);
+    setStatus(null);
+    try {
+      const res = await api.post(`${ANALYTICS}/force-batch`);
+      setMsg(res.data ?? "Batch exécuté !");
+      setStatus("ok");
+      onSuccess?.();
+    } catch (e) {
+      setMsg(e.response?.data?.message ?? e.message ?? "Erreur batch");
+      setStatus("err");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <div className={styles.kpiCard} style={{ borderTopColor: color }}>
-      <span className={styles.kpiIcon}>{icon}</span>
-      <div>
-        <div className={styles.kpiValue}>{value ?? "—"}</div>
-        <div className={styles.kpiLabel}>{label}</div>
-      </div>
+    <div className={styles.batchZone}>
+      <button
+        className={`${styles.btnBatch} ${busy ? styles.btnBatchBusy : ""}`}
+        onClick={handleClick}
+        disabled={busy}
+      >
+        {busy ? "⏳ En cours…" : "⚡ Forcer le batch Gold"}
+      </button>
+      {status === "ok"  && <span className={styles.batchOk}>✅ {msg}</span>}
+      {status === "err" && <span className={styles.batchErr}>❌ {msg}</span>}
     </div>
+  );
+}
+
+// ── Ratio table ───────────────────────────────────────────────────────────────
+function RatioTable({ data }) {
+  if (!data || data.length === 0) return null;
+  const total = data.reduce((s, r) => s + Number(r.nb || 0), 0);
+
+  return (
+    <table className={styles.ratioTable}>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Nb transactions</th>
+          <th>Pourcentage</th>
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((r, i) => (
+          <tr key={i}>
+            <td>
+              <span className={styles.badge} data-type={r.type}>
+                {r.type}
+              </span>
+            </td>
+            <td>{Number(r.nb).toLocaleString()}</td>
+            <td>
+              <strong>
+                {r.pourcentage ??
+                  (total > 0 ? Math.round((Number(r.nb) / total) * 100) : 0)}
+                %
+              </strong>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
   const { user } = useAuth();
-
   const warehouseId = user?.warehouseId ?? 1;
   const [jours, setJours] = useState(30);
 
-  const { topSorties, kpi, ratioInOut, loading, error } = useAnalytics(warehouseId, jours);
+  const { topSorties, topEntrees, ratioInOut, loading, error, refetch } =
+    useAnalytics(warehouseId, jours);
 
   return (
     <section className={styles.page}>
@@ -168,7 +238,7 @@ export default function AnalyticsPage() {
         subtitle="Traitements Hive — vue Gold en temps différé"
       />
 
-      {/* Filtre période */}
+      {/* Toolbar */}
       <div className={styles.toolbar}>
         <label className={styles.toolbarLabel}>Période :</label>
         {[7, 30, 90].map((d) => (
@@ -180,92 +250,49 @@ export default function AnalyticsPage() {
             {d}j
           </button>
         ))}
+        <ForceBatchButton onSuccess={refetch} />
       </div>
 
+      {/* States */}
       {loading && <p className={styles.loading}>⏳ Chargement des données Hive…</p>}
-      {error && <p className={styles.error}>❌ Erreur : {error}</p>}
+      {error   && <p className={styles.error}>❌ {error}</p>}
 
       {!loading && !error && (
         <>
-          {/* ── D. KPI Global ─────────────────────────────────────────────── */}
+          {/* ── Top 10 Entrées ── */}
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>📦 Vue Globale des Mouvements de Stock</h2>
-            <div className={styles.kpiGrid}>
-              <KpiCard
-                icon="📦"
-                label="Total mouvements"
-                value={kpi?.total_mouvements != null ? Number(kpi.total_mouvements).toLocaleString() : "—"}
-                color="#64748b"
-              />
-              <KpiCard
-                icon="✅"
-                label="VALIDATED"
-                value={kpi?.validated != null ? Number(kpi.validated).toLocaleString() : "—"}
-                color="#22c55e"
-              />
-              <KpiCard
-                icon="❌"
-                label="REJECTED"
-                value={kpi?.rejected != null ? Number(kpi.rejected).toLocaleString() : "—"}
-                color="#ef4444"
-              />
-              <KpiCard
-                icon="⏳"
-                label="PENDING"
-                value={kpi?.pending != null ? Number(kpi.pending).toLocaleString() : "—"}
-                color="#f59e0b"
+            <h2 className={styles.sectionTitle}>📦 Top 10 Produits les plus Entrés</h2>
+            <div className={styles.card}>
+              <BarChart
+                data={topEntrees}
+                valueKey="total"
+                labelKey="productname"
+                color="blue"
               />
             </div>
           </div>
 
-          {/* ── C. Top 10 Sorties ─────────────────────────────────────────── */}
+          {/* ── Top 10 Sorties ── */}
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>📊 Top 10 Produits les plus Sortis</h2>
+            <h2 className={styles.sectionTitle}>🚚 Top 10 Produits les plus Sortis</h2>
             <div className={styles.card}>
-              <BarChart data={topSorties} valueKey="total" labelKey="productName" />
+              <BarChart
+                data={topSorties}
+                valueKey="total"
+                labelKey="productname"
+                color="orange"
+              />
             </div>
           </div>
 
-          {/* ── E. Ratio IN / OUT ─────────────────────────────────────────── */}
+          {/* ── Ratio IN / OUT ── */}
           <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>📊 Ratio IN vs OUT</h2>
+            <h2 className={styles.sectionTitle}>⚖️ Ratio IN vs OUT</h2>
             <div className={styles.card}>
-              <DonutChart data={ratioInOut} />
-
-              {ratioInOut.length > 0 && (
-                <table className={styles.ratioTable}>
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>Nb transactions</th>
-                      <th>Pourcentage</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ratioInOut.map((r, i) => (
-                      <tr key={i}>
-                        <td>
-                          <span className={styles.badge} data-type={r.type}>
-                            {r.type}
-                          </span>
-                        </td>
-                        <td>{Number(r.nb).toLocaleString()}</td>
-                        <td>
-                          <strong>
-                            {r.pourcentage ??
-                              Math.round(
-                                (Number(r.nb) /
-                                  ratioInOut.reduce((s, x) => s + Number(x.nb), 0)) *
-                                  100
-                              )}
-                            %
-                          </strong>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+              <div className={styles.twoCol}>
+                <DonutChart data={ratioInOut} />
+                <RatioTable data={ratioInOut} />
+              </div>
             </div>
           </div>
         </>

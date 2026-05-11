@@ -2,8 +2,11 @@ package com.example.wms;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
+@EnableScheduling   // ← ajouter ça
+
 public class WmsApplication {
 ///h
     public static void main(String[] args) {

@@ -100,6 +100,7 @@ public class StockMovementMapper {
 
         event.setId(sm.getId());
         event.setProductId(sm.getProduct() != null ? sm.getProduct().getId() : null);
+        event.setProductName(sm.getProduct() != null ? sm.getProduct().getName() : null); // ✅ FIX: productName was never set → null in HDFS/Hive
 
         // ==========================================
         // 🎯 NOUVEAU : RÉCUPÉRATION DU WAREHOUSE ID

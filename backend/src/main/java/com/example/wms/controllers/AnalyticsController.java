@@ -9,8 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,16 +20,16 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.wms.services.AnalyticsBatchService;
 
 @RestController
+@CrossOrigin(origins = "*") // Permet les requêtes depuis n'importe quelle origine (ex: React local)
 @RequestMapping("/api/analytics")
-@CrossOrigin("*")
 public class AnalyticsController {
 
     @Autowired
     @Qualifier("hiveJdbcTemplate")
     private JdbcTemplate hive;
 
-    // ✅ FIX 1 : injecter le datasource Postgres pour les requêtes non-Hive
-    // ✅ FIX 1 : le bean Postgres primaire s'appelle "dataSource" dans PostgresConfig
+    // FIX : JdbcTemplate Postgres distinct du bean Hive
+    // On le construit à partir du DataSource primaire (PostgresConfig)
     @Autowired
     @Qualifier("dataSource")
     private DataSource postgresDataSource;
@@ -40,16 +38,16 @@ public class AnalyticsController {
     private AnalyticsBatchService batchService;
 
     // ==========================================
-    // 0. FORCE BATCH (dev/test)
+    // 0. FORCE BATCH — admin déclenche manuellement
     // ==========================================
     @PostMapping("/force-batch")
     public ResponseEntity<String> forceBatchExecution() {
         batchService.runGoldAnalyticsPipeline();
-        return ResponseEntity.ok("Batch exécuté avec succès ! Vérifie ta table Gold.");
+        return ResponseEntity.ok("Batch exécuté avec succès ! Table Gold mise à jour.");
     }
 
     // ==========================================
-    // A. Répartition des raisons (Pie Chart)
+    // A. Répartition des raisons (Pie Chart) — Hive
     // ==========================================
     @GetMapping("/{warehouseId}/raisons")
     public ResponseEntity<List<Map<String, Object>>> getMouvementsParRaison(
@@ -59,81 +57,101 @@ public class AnalyticsController {
         String sql = "SELECT movementReason as name, SUM(nb_transactions) as value " +
                 "FROM warehouse_analytics_gold " +
                 "WHERE warehouseId = " + warehouseId + " " +
+                "AND status = 'VALIDATED' " +
                 "AND stat_date >= date_sub(current_date(), " + jours + ") " +
                 "GROUP BY movementReason";
 
-        // ✅ FIX 2 : retourner ResponseEntity pour éviter les corps vides
         return ResponseEntity.ok(hive.queryForList(sql));
     }
+    @GetMapping("/{warehouseId}/dormant-products")
+public ResponseEntity<List<Map<String, Object>>> getDormantProducts(
+        @PathVariable int warehouseId,
+        @RequestParam(defaultValue = "30") int jours) {
 
+    String sql =
+        "SELECT productName, " +
+        "MAX(stat_date) as lastMovementDate, " +
+        "DATEDIFF(current_date(), MAX(stat_date)) as daysWithoutMovement " +
+        "FROM warehouse_analytics_gold " +
+        "WHERE warehouseId = " + warehouseId + " " +
+        "AND status = 'VALIDATED' " +
+        "GROUP BY productName " +
+        "HAVING DATEDIFF(current_date(), MAX(stat_date)) >= " + jours + " " +
+        "ORDER BY daysWithoutMovement DESC " +
+        "LIMIT 10";
+
+    return ResponseEntity.ok(hive.queryForList(sql));
+}
     // ==========================================
-    // B. Top 10 Entrées (Bar Chart)
+    // B. Top 10 Entrées (Bar Chart) — Hive
     // ==========================================
     @GetMapping("/{warehouseId}/top-entrees")
     public ResponseEntity<List<Map<String, Object>>> getTopEntrees(
             @PathVariable int warehouseId,
             @RequestParam(defaultValue = "30") int jours) {
 
-        String sql = "SELECT productName, SUM(total_qty) as total " +
-                "FROM warehouse_analytics_gold " +
-                "WHERE warehouseId = " + warehouseId + " " +
-                "AND movementType = 'IN' " +
-                "AND stat_date >= date_sub(current_date(), " + jours + ") " +
-                "GROUP BY productName " +
-                "ORDER BY total DESC LIMIT 10";
+       String sql =
+    "SELECT productname, SUM(total_qty) as total " +
+    "FROM warehouse_analytics_gold " +
+    "WHERE warehouseid = " + warehouseId + " " +
+    "AND movementtype = 'IN' " +
+    "AND status = 'VALIDATED' " +
+    "AND stat_date >= date_sub(current_date(), " + jours + ") " +
+    "GROUP BY productname " +
+    "ORDER BY total DESC LIMIT 10";
 
         return ResponseEntity.ok(hive.queryForList(sql));
     }
 
     // ==========================================
-    // C. Top 10 Produits les plus SORTIS
+    // C. Top 10 Sorties (Bar Chart) — Hive
     // ==========================================
     @GetMapping("/{warehouseId}/top-sorties")
     public ResponseEntity<List<Map<String, Object>>> getTopSorties(
             @PathVariable int warehouseId,
             @RequestParam(defaultValue = "30") int jours) {
 
-        String sql = "SELECT productName, SUM(total_qty) as total " +
-                "FROM warehouse_analytics_gold " +
-                "WHERE warehouseId = " + warehouseId + " " +
-                "AND movementType = 'OUT' " +
-                "AND stat_date >= date_sub(current_date(), " + jours + ") " +
-                "GROUP BY productName " +
-                "ORDER BY total DESC LIMIT 10";
+        String sql =
+    "SELECT productname, SUM(total_qty) as total " +
+    "FROM warehouse_analytics_gold " +
+    "WHERE warehouseid = " + warehouseId + " " +
+    "AND movementtype = 'OUT' " +
+    "AND status = 'VALIDATED' " +
+    "AND stat_date >= date_sub(current_date(), " + jours + ") " +
+    "GROUP BY productname " +
+    "ORDER BY total DESC LIMIT 10";
 
         return ResponseEntity.ok(hive.queryForList(sql));
     }
 
     // ==========================================
-    // D. Vue Globale des Mouvements (Global KPI)
-    // ✅ Requête Postgres en temps réel — Hive ne reflète pas les validations faites après le batch
+    // D. Vue Globale — Global KPI Dashboard
+    // Requête Postgres temps réel (pas Hive) :
+    // Hive ne reflète pas les validations faites après le dernier batch.
+    // On interroge directement stock_movements en Postgres pour avoir
+    // total / validated / rejected / pending à jour.
     // ==========================================
-    
-
+  
     // ==========================================
-    // E. Ratio IN / OUT
+    // E. Ratio IN / OUT — Hive
     // ==========================================
     @GetMapping("/{warehouseId}/ratio-in-out")
     public ResponseEntity<List<Map<String, Object>>> getRatioInOut(
             @PathVariable int warehouseId,
             @RequestParam(defaultValue = "30") int jours) {
 
-        String sql = "SELECT " +
-                "  movementType AS type, " +
-                "  SUM(nb_transactions) AS nb, " +
-                "  ROUND(SUM(nb_transactions) * 100.0 / " +
-                "        SUM(SUM(nb_transactions)) OVER (), 1) AS pourcentage " +
-                "FROM warehouse_analytics_gold " +
-                "WHERE warehouseId = " + warehouseId + " " +
-                "AND movementType IN ('IN', 'OUT') " +
-                "AND stat_date >= date_sub(current_date(), " + jours + ") " +
-                "GROUP BY movementType";
+    String sql =
+    "SELECT movementtype AS type, " +
+    "SUM(nb_transactions) AS nb, " +
+    "ROUND(SUM(nb_transactions) * 100.0 / " +
+    "      SUM(SUM(nb_transactions)) OVER (), 1) AS pourcentage " +
+    "FROM warehouse_analytics_gold " +
+    "WHERE warehouseid = " + warehouseId + " " +
+    "AND movementtype IN ('IN', 'OUT') " +
+    "AND status = 'VALIDATED' " +
+    "AND stat_date >= date_sub(current_date(), " + jours + ") " +
+    "GROUP BY movementtype";
 
         return ResponseEntity.ok(hive.queryForList(sql));
     }
-
-    // ==========================================
-    // P. Produits qui Dorment (> 1 mois sans mouvement)
-    // ==========================================
-    
 }

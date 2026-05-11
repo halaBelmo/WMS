@@ -13,36 +13,39 @@ public class AnalyticsBatchService {
     @Qualifier("hiveJdbcTemplate")
     private JdbcTemplate hive;
 
-    /**
-     * S'exécute chaque nuit à 01h00 du matin.
-     * Calcule toutes les dimensions pour la table Gold.
-     */
+    // ==========================================
+    // Batch nuit — recalcul complet table Gold
+    // ==========================================
     @Scheduled(cron = "0 0 1 * * *")
-   public void runGoldAnalyticsPipeline() {
-    System.out.println("Début du calcul de la table GOLD...");
+    public void runGoldAnalyticsPipeline() {
+        System.out.println("Début du calcul de la table GOLD...");
 
-    // ✅ INSERT OVERWRITE = vide + réécrit en une seule opération (supporté par Hive sans ACID)
-    String sql =
-        "INSERT OVERWRITE TABLE warehouse_analytics_gold " +
-        "SELECT " +
-        "  warehouseId, " +
-        "  cast(createdAt as date) as stat_date, " +
-        "  productId, " +
-        "  'Product_' || cast(productId as string), " +
-        "  movementType, " +
-        "  movementReason, " +
-        "  status, " +
-        "  SUM(quantity), " +
-        "  SUM(quantity * 15.0), " +
-        "  COUNT(*) " +
-        "FROM stock_movements " +
-        "GROUP BY warehouseId, cast(createdAt as date), productId, movementType, movementReason, status";
+        // INSERT OVERWRITE repart de zéro → efface aussi les lignes correctives
+        // de la journée, ce qui est correct car on recalcule tout depuis Postgres
+        String sql =
+            "INSERT OVERWRITE TABLE warehouse_analytics_gold " +
+            "SELECT " +
+            "  warehouseId, " +
+            "  cast(createdAt as date) as stat_date, " +
+            "  productId, " +
+            "  productName, " +
+            "  movementType, " +
+            "  movementReason, " +
+            "  status, " +
+            "  SUM(quantity), " +
+            "  SUM(quantity * 15.0), " +
+            "  COUNT(*) " +
+            "FROM stock_movements " +
+            "GROUP BY warehouseId, cast(createdAt as date), productId, productName, " +
+            "         movementType, movementReason, status";
 
-    try {
-        hive.execute(sql);
-        System.out.println("Table GOLD mise à jour avec succès.");
-    } catch (Exception e) {
-        System.err.println("Erreur lors du batch Hive : " + e.getMessage());
+        try {
+            hive.execute(sql);
+            System.out.println("Table GOLD mise à jour avec succès.");
+        } catch (Exception e) {
+            System.err.println("Erreur lors du batch Hive : " + e.getMessage());
+        }
     }
-}
+
+    
 }
