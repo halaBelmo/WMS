@@ -76,17 +76,17 @@ export default function App() {
           </PublicOnlyRoute>
         }
       />
-    <Route
-  path="/analytics"
-  element={
-    <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
-      <AnalyticsPage />
-    </ProtectedRoute>
-  }
-/>
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
+                <AnalyticsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/warehouses"
             element={
