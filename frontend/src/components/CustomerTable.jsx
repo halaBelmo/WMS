@@ -21,7 +21,7 @@ export default function CustomerTable({
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>ID</th>
+           
             <th>Name</th>
             <th>Email</th>
             <th>Phone</th>
@@ -32,7 +32,6 @@ export default function CustomerTable({
         <tbody>
           {customers.map((customer) => (
             <tr key={customer.id}>
-              <td>{customer.id}</td>
               <td>{customer.name}</td>
               <td>{customer.email}</td>
               <td>{customer.phone || "-"}</td>
