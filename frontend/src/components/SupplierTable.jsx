@@ -14,7 +14,6 @@ export default function SupplierTable({ suppliers, loading, deletingId, onEdit, 
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>ID</th>
             <th>Name</th>
             <th>Email</th>
             <th>Phone</th>
@@ -25,7 +24,7 @@ export default function SupplierTable({ suppliers, loading, deletingId, onEdit, 
         <tbody>
           {suppliers.map((supplier) => (
             <tr key={supplier.id}>
-              <td>{supplier.id}</td>
+             
               <td>{supplier.name}</td>
               <td>{supplier.email}</td>
               <td>{supplier.phone || "-"}</td>

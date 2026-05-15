@@ -402,7 +402,8 @@ export default function StockManagementPage() {
                 <option value="">-- Choose Location --</option>
                 {locations.map((location) => (
                   <option key={location.id} value={location.id}>
-                    {location.label}
+                    {location.name
+         }
                   </option>
                 ))}
               </select>

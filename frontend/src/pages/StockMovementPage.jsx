@@ -633,7 +633,7 @@ export default function StockMovementPage() {
                     </option>
                     {fromLocationOptions.map((location) => (
                       <option key={location.id} value={location.id}>
-                        {location.label}
+                        {location.code || location.name}
                       </option>
                     ))}
                   </select>
@@ -654,7 +654,7 @@ export default function StockMovementPage() {
                     </option>
                     {toLocationOptions.map((location) => (
                       <option key={location.id} value={location.id}>
-                        {location.label || location.code || location.name}
+                        {location.code }
                       </option>
                     ))}
                   </select>
@@ -780,9 +780,7 @@ export default function StockMovementPage() {
                       <td>{movement.fromLocationName}</td>
                       <td>{movement.toLocationName}</td>
                       <td>{movement.destinationType}</td>
-                      <td>
-                        {getDestinationLabel(movement.destinationType, movement.destinationId)}
-                      </td>
+                    
                       <td>{movement.quantity}</td>
                       <td>{movement.status}</td>
                       <td>{movement.createdBy}</td>

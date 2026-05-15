@@ -27,7 +27,7 @@ export default function StockTable({ stocks, loading, deletingId, onEdit, onDele
             <tr key={stock.id}>
               <td>{stock.id}</td>
               <td>{stock.productName || "-"}</td>
-              <td>{stock.locationLabel || stock.locationCode || stock.locationName || "-"}</td>
+              <td>{stock.locationCode || stock.locationCode || "-"}</td>
               <td>{stock.quantity}</td>
               <td className={styles.actions}>
                 <Button variant="outline" fullWidth={false} onClick={() => onEdit(stock)}>

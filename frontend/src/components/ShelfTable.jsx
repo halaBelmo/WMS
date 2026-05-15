@@ -11,7 +11,7 @@ export default function ShelfTable({ shelves, loading, deletingId, onEdit, onDel
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>ID</th>
+            
             <th>Code</th>
             <th>Rack</th>
             <th>Actions</th>
@@ -20,7 +20,7 @@ export default function ShelfTable({ shelves, loading, deletingId, onEdit, onDel
         <tbody>
           {shelves.map((shelf) => (
             <tr key={shelf.id}>
-              <td>{shelf.id}</td>
+              
               <td>{shelf.code}</td>
               <td>{shelf.rackCode}</td>
               <td className={styles.actions}>
