@@ -10,7 +10,6 @@ export default function ZoneTable({ zones, loading, deletingId, onEdit, onDelete
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>ID</th>
             <th>Name</th>
             <th>Warehouse</th>
             <th>Actions</th>
@@ -19,7 +18,7 @@ export default function ZoneTable({ zones, loading, deletingId, onEdit, onDelete
         <tbody>
           {zones.map((zone) => (
             <tr key={zone.id}>
-              <td>{zone.id}</td>
+             
               <td>{zone.name}</td>
               <td>{zone.warehouseName}</td>
               <td className={styles.actions}>

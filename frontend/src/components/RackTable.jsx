@@ -11,18 +11,15 @@ export default function RackTable({ racks, loading, deletingId, onEdit, onDelete
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>ID</th>
             <th>Code</th>
-            <th>Zone</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {racks.map((rack) => (
             <tr key={rack.id}>
-              <td>{rack.id}</td>
               <td>{rack.code}</td>
-              <td>{rack.zoneName}</td>
+            
               <td className={styles.actions}>
                 <button onClick={() => onEdit(rack)} className={styles.editBtn}>
                   Edit
