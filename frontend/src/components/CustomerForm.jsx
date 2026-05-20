@@ -1,7 +1,7 @@
-import Button from "./Button";
 import styles from "./CustomerForm.module.css";
 
 export default function CustomerForm({
+  className = "",
   form,
   onChange,
   onSubmit,
@@ -11,13 +11,17 @@ export default function CustomerForm({
   error,
 }) {
   return (
-    <form className={styles.card} onSubmit={onSubmit}>
-      <h3 className={styles.title}>{isEditing ? "Update Customer" : "Create Customer"}</h3>
+    <form className={`${styles.card} ${className}`.trim()} onSubmit={onSubmit}>
+      <div className={styles.header}>
+        <h3 className={styles.title}>Create Customer</h3>
+        <p className={styles.subtitle}>Enter customer contact details and save.</p>
+      </div>
 
       <div className={styles.grid}>
         <div className={styles.field}>
           <label>Name</label>
           <input
+            className={styles.largeInput}
             value={form.name}
             onChange={(event) => onChange("name", event.target.value)}
             placeholder="Customer name"
@@ -26,13 +30,12 @@ export default function CustomerForm({
         </div>
 
         <div className={styles.field}>
-          <label>Email</label>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(event) => onChange("email", event.target.value)}
-            placeholder="customer@example.com"
-            required
+          <label>Address</label>
+          <textarea
+            value={form.address}
+            onChange={(event) => onChange("address", event.target.value)}
+            placeholder="Full address"
+            rows="2"
           />
         </div>
 
@@ -46,12 +49,13 @@ export default function CustomerForm({
         </div>
 
         <div className={styles.field}>
-          <label>Address</label>
-          <textarea
-            value={form.address}
-            onChange={(event) => onChange("address", event.target.value)}
-            placeholder="Full address"
-            rows="3"
+          <label>Email</label>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(event) => onChange("email", event.target.value)}
+            placeholder="customer@example.com"
+            required
           />
         </div>
       </div>
@@ -59,14 +63,12 @@ export default function CustomerForm({
       {error ? <p className={styles.error}>{error}</p> : null}
 
       <div className={styles.actions}>
-        <Button type="submit" fullWidth={false} disabled={isSubmitting}>
+        <button type="submit" className={styles.primaryButton} disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : isEditing ? "Update Customer" : "Create Customer"}
-        </Button>
-        {isEditing ? (
-          <Button type="button" variant="outline" fullWidth={false} onClick={onCancel}>
-            Cancel
-          </Button>
-        ) : null}
+        </button>
+        <button type="button" className={styles.secondaryButton} onClick={onCancel}>
+          Reset
+        </button>
       </div>
     </form>
   );

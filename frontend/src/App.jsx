@@ -9,10 +9,7 @@ import SignupPage from "./pages/SignupPage";
 import WarehouseManagementPage from "./pages/WarehouseManagementPage";
 import UserManagementPage from "./pages/UserManagementPage";
 import AccessDeniedPage from "./pages/AccessDeniedPage";
-import LocationManagementPage from "./pages/LocationManagementPage";
-import ZoneManagementPage from "./pages/ZoneManagementPage";
-import RackManagementPage from "./pages/RackManagementPage";
-import ShelfManagementPage from "./pages/ShelfManagementPage";
+import WarehouseStructurePage from "./pages/WarehouseStructurePage";
 import SupplierManagementPage from "./pages/SupplierManagementPage";
 import ProductManagementPage from "./pages/ProductManagementPage";
 import StockManagementPage from "./pages/StockManagementPage";
@@ -105,34 +102,42 @@ export default function App() {
           />
 
           <Route
-            path="/locations"
+            path="/structure"
             element={
-              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
-                <LocationManagementPage />
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <WarehouseStructurePage />
               </ProtectedRoute>
             }
           />
           <Route
             path="/zones"
             element={
-              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
-                <ZoneManagementPage />
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <Navigate to="/structure" replace />
               </ProtectedRoute>
             }
           />
           <Route
             path="/racks"
             element={
-              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
-                <RackManagementPage />
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <Navigate to="/structure" replace />
               </ProtectedRoute>
             }
           />
           <Route
             path="/shelves"
             element={
-              <ProtectedRoute allowedRoles={["OWNER", "ADMIN"]}>
-                <ShelfManagementPage />
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <Navigate to="/structure" replace />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/locations"
+            element={
+              <ProtectedRoute allowedRoles={["ADMIN"]}>
+                <Navigate to="/structure" replace />
               </ProtectedRoute>
             }
           />

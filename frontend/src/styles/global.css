@@ -1,21 +1,21 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Sora:wght@400;600;700&display=swap");
 
 :root {
-  --color-primary: #1a56db;
-  --color-primary-hover: #1648c0;
-  --color-primary-light: #eef3ff;
-  --color-primary-border: #c7d7ff;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #eff6ff;
+  --color-primary-border: #bfdbfe;
 
   --color-bg: #f5f7fb;
   --color-surface: #ffffff;
-  --color-surface-secondary: #f8f9fc;
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-border-focus: #1a56db;
+  --color-surface-secondary: #f8fafc;
+  --color-border: #e5e7eb;
+  --color-border-focus: #2563eb;
 
-  --color-text-primary: #0d1117;
-  --color-text-secondary: #5a6478;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
   --color-text-tertiary: #9ba3b3;
-  --color-text-link: #1a56db;
+  --color-text-link: #2563eb;
 
   --radius-sm: 6px;
   --radius-md: 10px;

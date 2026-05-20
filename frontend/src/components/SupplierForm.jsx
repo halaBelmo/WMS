@@ -1,4 +1,3 @@
-import Button from "./Button";
 import styles from "./SupplierForm.module.css";
 
 export default function SupplierForm({
@@ -12,11 +11,14 @@ export default function SupplierForm({
 }) {
   return (
     <form className={styles.card} onSubmit={onSubmit}>
-      <h3 className={styles.title}>{isEditing ? "Update Supplier" : "Create Supplier"}</h3>
+      <div className={styles.header}>
+        <h3 className={styles.title}>{isEditing ? "Update Supplier" : "Create Supplier"}</h3>
+        <p className={styles.subtitle}>Maintain supplier records and contact channels for procurement workflows.</p>
+      </div>
 
       <div className={styles.grid}>
         <div className={styles.field}>
-          <label>Name</label>
+          <label>Supplier Name</label>
           <input
             value={form.name}
             onChange={(event) => onChange("name", event.target.value)}
@@ -46,7 +48,7 @@ export default function SupplierForm({
         </div>
 
         <div className={styles.field}>
-          <label>Contact</label>
+          <label>Contact Person</label>
           <input
             value={form.contact}
             onChange={(event) => onChange("contact", event.target.value)}
@@ -54,7 +56,7 @@ export default function SupplierForm({
           />
         </div>
 
-        <div className={styles.field}>
+        <div className={`${styles.field} ${styles.addressField}`}>
           <label>Address</label>
           <textarea
             value={form.address}
@@ -68,14 +70,12 @@ export default function SupplierForm({
       {error ? <p className={styles.error}>{error}</p> : null}
 
       <div className={styles.actions}>
-        <Button type="submit" fullWidth={false} disabled={isSubmitting}>
+        <button type="submit" className={styles.primaryBtn} disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : isEditing ? "Update Supplier" : "Create Supplier"}
-        </Button>
-        {isEditing ? (
-          <Button type="button" variant="outline" fullWidth={false} onClick={onCancel}>
-            Cancel
-          </Button>
-        ) : null}
+        </button>
+        <button type="button" className={styles.secondaryBtn} onClick={onCancel}>
+          Reset
+        </button>
       </div>
     </form>
   );

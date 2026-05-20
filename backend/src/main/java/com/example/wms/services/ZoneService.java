@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.wms.dtos.ZoneRequestDTO;
 import com.example.wms.entities.Rack;
+import com.example.wms.entities.RoleName;
 import com.example.wms.entities.Shelf;
 import com.example.wms.entities.User;
 import com.example.wms.entities.Zone;
@@ -74,8 +75,18 @@ public void delete(Long id, String username) {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Long warehouseId = user.getWarehouse().getId();
+        if (user.getRole() != null && user.getRole().getName() == RoleName.OWNER) {
+            if (user.getCompany() == null || user.getCompany().getId() == null) {
+                return List.of();
+            }
+            return zoneRepository.findByWarehouse_Company_Id(user.getCompany().getId());
+        }
 
+        if (user.getWarehouse() == null || user.getWarehouse().getId() == null) {
+            return List.of();
+        }
+
+        Long warehouseId = user.getWarehouse().getId();
         return zoneRepository.findByWarehouseId(warehouseId);
     }
 

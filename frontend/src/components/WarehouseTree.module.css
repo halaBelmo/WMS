@@ -1,42 +1,129 @@
 .container {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-  font-family: monospace;
-  font-size: 0.9rem;
-  max-height: 500px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
 }
 
-.container h3 {
-  margin: 0 0 1rem 0;
-  color: #333;
-  font-size: 1.1rem;
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
 }
 
-.treeNode {
+.summaryCard {
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 0.85rem 0.95rem;
+  box-shadow: 0 2px 10px rgba(17, 24, 39, 0.05);
+}
+
+.summaryCard p {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.summaryCard h4 {
+  margin-top: 0.35rem;
+  font-size: 1.3rem;
+  color: #111827;
+}
+
+.blue { border-left: 4px solid #2563eb; }
+.green { border-left: 4px solid #16a34a; }
+.purple { border-left: 4px solid #7c3aed; }
+
+.treeCard {
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(17, 24, 39, 0.05);
+  overflow: hidden;
+}
+
+.title {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  color: #111827;
+  font-size: 1rem;
+}
+
+.treeBody {
+  padding: 0.85rem;
+}
+
+.nodeWrap {
+  margin-bottom: 0.45rem;
+}
+
+.children {
   margin-left: 1rem;
+  padding-left: 0.65rem;
+  border-left: 1px solid #dbe3f1;
+  margin-top: 0.35rem;
 }
 
-.nodeLabel {
-  color: #2c3e50;
-  font-weight: 500;
+.nodeButton {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 0.52rem 0.62rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #111827;
+  transition: all 0.2s ease;
 }
 
-.branch {
-  margin: 0.2rem 0;
+.nodeButton:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
-.branchLine {
-  color: #bdc3c7;
+.leaf {
+  background: #fbfdff;
 }
 
-.branchConnector {
-  color: #95a5a6;
+.chevron {
+  color: #6b7280;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 14px;
 }
 
-.nodeLabel:hover {
-  color: #3498db;
+.icon {
+  width: 20px;
+  height: 20px;
+  color: #2563eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 20px;
 }
 
+.icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.countBadge {
+  margin-left: auto;
+  background: #eef2ff;
+  color: #4f46e5;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  padding: 0.2rem 0.52rem;
+  font-weight: 700;
+}

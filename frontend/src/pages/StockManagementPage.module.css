@@ -1,77 +1,276 @@
 .page {
-  padding: 24px;
-}
-
-.error {
-  color: #dc2626;
-  margin-bottom: 16px;
-  font-size: 0.95rem;
-}
-
-.infoMessage {
-  background: #eff6ff;
-  color: #1e40af;
-  padding: 16px 20px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  font-size: 0.95rem;
-  border: 1px solid #bfdbfe;
-}
-
-.hierarchySection {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  margin-bottom: 24px;
-}
-
-.hierarchyTitle {
-  margin: 0 0 16px 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #374151;
-}
-
-.selectRow {
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 2px 0 10px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.headingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #111827;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.subtitle {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: 16px;
-  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.warehouseBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dbe4f6;
+  background: #eef3ff;
+  color: #1e3a8a;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.badgeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assignmentGrid {
+  display: grid;
+  grid-template-columns: minmax(280px, 2fr) minmax(320px, 3fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+}
+
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.cardHeader p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.flow {
+  display: grid;
+  gap: 10px;
+  position: relative;
+}
+
+.flow::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: #dbe6fb;
+}
+
+.stepRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.step {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.73rem;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
 }
 
 .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-width: 200px;
-  flex: 1;
 }
 
 .field label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4b5563;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .select {
-  padding: 10px 12px;
+  width: 100%;
+  height: 40px;
   border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  background: #fff;
-  min-width: 180px;
-  cursor: pointer;
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 0.89rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .select:focus {
   outline: none;
   border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 .select:disabled {
   background: #f3f4f6;
-  cursor: not-allowed;
-  opacity: 0.7;
+  color: #9ca3af;
 }
 
+.hint {
+  margin: 0;
+  font-size: 0.76rem;
+  color: #6b7280;
+}
+
+.errorBanner {
+  margin: 0;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-radius: 12px;
+  padding: 9px 11px;
+  font-size: 0.82rem;
+}
+
+.tableCard {
+  padding-bottom: 10px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #edf0f4;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf0f4;
+  vertical-align: middle;
+}
+
+.table th {
+  background: #f8fafc;
+  color: #6b7280;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table tbody tr:hover {
+  background: #f9fbff;
+}
+
+.qty {
+  display: inline-flex;
+  min-width: 36px;
+  justify-content: center;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 700;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+}
+
+.tableInfo {
+  margin: 0;
+  font-size: 0.83rem;
+  color: #6b7280;
+}
+
+.errorInline {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #b91c1c;
+}
+
+.inventoryCard {
+  padding-top: 12px;
+}
+
+@media (max-width: 1160px) {
+  .assignmentGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .pageHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .headerActions {
+    justify-content: flex-start;
+  }
+
+  .card {
+    padding: 12px;
+  }
+}

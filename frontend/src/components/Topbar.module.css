@@ -1,25 +1,48 @@
-﻿.topbar {
+.topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  padding: 1.2rem 1.5rem;
-  background: rgba(255, 255, 255, 0.92);
+  padding: 0.95rem 1.5rem;
+  background: rgba(255, 255, 255, 0.98);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
   z-index: 40;
   backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(17, 24, 39, 0.06);
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.28);
 }
 
 .welcome {
-  font-size: 12px;
-  color: var(--color-text-secondary);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  font-weight: 600;
 }
 
 .title {
-  font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
 }
 
 .actions {
@@ -30,9 +53,14 @@
 
 .badge {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   background: var(--color-primary-light);
   color: var(--color-primary);
-  padding: 0.4rem 0.7rem;
+  padding: 0.4rem 0.8rem;
   border-radius: 16px;
+  border: 1px solid var(--color-primary-border);
+}
+
+.logoutIcon {
+  font-size: 14px;
 }
