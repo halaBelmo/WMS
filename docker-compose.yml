@@ -35,6 +35,7 @@ services:
     environment:
       CLUSTER_NAME: wms-cluster
       CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+      HDFS_CONF_dfs_replication: 1
     volumes:
       - namenode:/hadoop/dfs/name
 
@@ -45,6 +46,7 @@ services:
       - namenode
     environment:
       CORE_CONF_fs_defaultFS: hdfs://namenode:8020
+      HDFS_CONF_dfs_replication: 1
     volumes:
       - datanode:/hadoop/dfs/data
 

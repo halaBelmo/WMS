@@ -33,6 +33,12 @@ const initialForm = {
   notes: "",
 };
 
+const initialSimulationForm = {
+  count: 10,
+  minQuantity: 1,
+  maxQuantity: 20,
+};
+
 function extractList(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.data)) return data.data;
@@ -156,6 +162,7 @@ export default function StockMovementPage() {
   const canReviewMovements = role === "ADMIN";
 
   const [form, setForm] = useState(initialForm);
+  const [simulationForm, setSimulationForm] = useState(initialSimulationForm);
 
   const [products, setProducts] = useState([]);
   const [allLocations, setAllLocations] = useState([]);
@@ -169,6 +176,7 @@ export default function StockMovementPage() {
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [loadingPending, setLoadingPending] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [simulating, setSimulating] = useState(false);
   const [actionLoading, setActionLoading] = useState({ id: null, type: "" });
 
   const [formError, setFormError] = useState("");
@@ -472,6 +480,53 @@ export default function StockMovementPage() {
     setForm(initialForm);
   };
 
+  const handleSimulationFieldChange = (field, value) => {
+    setSimulationForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleRunSimulation = async (event) => {
+    event.preventDefault();
+    setSimulating(true);
+    setFormError("");
+    setSuccessMessage("");
+
+    const count = Number(simulationForm.count);
+    const minQuantity = Number(simulationForm.minQuantity);
+    const maxQuantity = Number(simulationForm.maxQuantity);
+
+    if (
+      !Number.isInteger(count) ||
+      count <= 0 ||
+      !Number.isInteger(minQuantity) ||
+      minQuantity <= 0 ||
+      !Number.isInteger(maxQuantity) ||
+      maxQuantity < minQuantity
+    ) {
+      setFormError("Please enter valid simulation values.");
+      setSimulating(false);
+      return;
+    }
+
+    try {
+      const response = await api.post("/api/simulator/movements", {
+        count,
+        minQuantity,
+        maxQuantity,
+        autoValidate: false,
+      });
+      const result = response.data || {};
+      setSuccessMessage(
+        `Simulation completed: ${result.created ?? 0} movements created${
+          result.validated ? `, ${result.validated} validated` : ""
+        }.`
+      );
+    } catch (requestError) {
+      setFormError(requestError.response?.data?.message || "Could not run movement simulation.");
+    } finally {
+      setSimulating(false);
+    }
+  };
+
   const handleCreateMovement = async (event) => {
     event.preventDefault();
     setSubmitting(true);
@@ -560,6 +615,60 @@ export default function StockMovementPage() {
       />
 
       {canCreateMovement ? (
+        <>
+        <div className={styles.card}>
+          <h3 className={styles.cardTitle}>Movement Simulation</h3>
+
+          <form className={styles.form} onSubmit={handleRunSimulation}>
+            <div className={styles.grid}>
+              <div className={styles.field}>
+                <label>Movements</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={simulationForm.count}
+                  onChange={(event) => handleSimulationFieldChange("count", event.target.value)}
+                  required
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label>Min Quantity</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={simulationForm.minQuantity}
+                  onChange={(event) =>
+                    handleSimulationFieldChange("minQuantity", event.target.value)
+                  }
+                  required
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label>Max Quantity</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={simulationForm.maxQuantity}
+                  onChange={(event) =>
+                    handleSimulationFieldChange("maxQuantity", event.target.value)
+                  }
+                  required
+                />
+              </div>
+
+            </div>
+
+            <div className={styles.actions}>
+              <Button type="submit" fullWidth={false} disabled={simulating}>
+                {simulating ? "Simulating..." : "Run Simulation"}
+              </Button>
+            </div>
+          </form>
+        </div>
+
         <div className={styles.card}>
           <h3 className={styles.cardTitle}>Create Movement</h3>
 
@@ -731,6 +840,7 @@ export default function StockMovementPage() {
           </form>
         ) : null}
         </div>
+        </>
       ) : null}
 
       {canReviewMovements ? (

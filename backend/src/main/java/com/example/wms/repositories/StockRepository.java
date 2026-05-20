@@ -41,6 +41,17 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
             Long rackId,
             Long shelfId
     );
+
+    @Query("""
+        SELECT s FROM Stock s
+        JOIN s.product p
+        JOIN s.location l
+        WHERE p.company.id = :companyId
+        AND l.warehouse IS NOT NULL
+        AND s.quantity > 0
+    """)
+    List<Stock> findAvailableStocksByCompanyId(Long companyId);
+
     Optional<Stock> findByProductIdAndLocationId(Long productId, Long locationId);
     @Transactional
     void deleteByProductId(Long productId);

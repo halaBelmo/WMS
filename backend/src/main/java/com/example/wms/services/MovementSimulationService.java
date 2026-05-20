@@ -1,0 +1,238 @@
+package com.example.wms.services;
+
+import java.util.List;
+import java.util.Random;
+
+import org.springframework.stereotype.Service;
+
+import com.example.wms.dtos.MovementSimulationRequestDTO;
+import com.example.wms.dtos.MovementSimulationResponseDTO;
+import com.example.wms.dtos.StockMovementRequestDTO;
+import com.example.wms.dtos.StockMovementResponseDTO;
+import com.example.wms.entities.DestinationType;
+import com.example.wms.entities.Location;
+import com.example.wms.entities.MovementReason;
+import com.example.wms.entities.MovementType;
+import com.example.wms.entities.Product;
+import com.example.wms.entities.RoleName;
+import com.example.wms.entities.Stock;
+import com.example.wms.entities.User;
+import com.example.wms.repositories.CustomerRepository;
+import com.example.wms.repositories.LocationRepository;
+import com.example.wms.repositories.ProductRepository;
+import com.example.wms.repositories.SupplierRepository;
+import com.example.wms.repositories.StockRepository;
+import com.example.wms.repositories.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class MovementSimulationService {
+
+    private static final int MAX_COUNT = 500;
+
+    private final StockMovementService stockMovementService;
+    private final ProductRepository productRepository;
+    private final LocationRepository locationRepository;
+    private final StockRepository stockRepository;
+    private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
+    private final SupplierRepository supplierRepository;
+    private final Random random = new Random();
+
+    public MovementSimulationResponseDTO simulate(MovementSimulationRequestDTO request, String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Long companyId = user.getCompany().getId();
+        List<Product> products = productRepository.findByCompanyId(companyId);
+        List<Location> locations = locationRepository.findAll()
+                .stream()
+                .filter(location -> location.getWarehouse() != null)
+                .filter(location -> location.getWarehouse().getCompany().getId().equals(companyId))
+                .toList();
+        List<Long> customerIds = customerRepository.findByCompany(user.getCompany())
+                .stream()
+                .map(customer -> customer.getId())
+                .toList();
+        List<Long> supplierIds = supplierRepository.findByCompany(user.getCompany())
+                .stream()
+                .map(supplier -> supplier.getId())
+                .toList();
+
+        if (products.isEmpty()) {
+            throw new RuntimeException("No products available for simulation");
+        }
+        if (locations.isEmpty()) {
+            throw new RuntimeException("No locations available for simulation");
+        }
+
+        int count = normalizeCount(request.getCount());
+        long minQuantity = normalizeMinQuantity(request.getMinQuantity());
+        long maxQuantity = normalizeMaxQuantity(request.getMaxQuantity(), minQuantity);
+        boolean autoValidate = Boolean.TRUE.equals(request.getAutoValidate())
+                && user.getRole() != null
+                && (user.getRole().getName() == RoleName.ADMIN || user.getRole().getName() == RoleName.OWNER);
+
+        List<StockMovementResponseDTO> movements = new java.util.ArrayList<>();
+        int validated = 0;
+
+        for (int i = 0; i < count; i++) {
+            List<Stock> availableStocks = stockRepository.findAvailableStocksByCompanyId(companyId);
+
+            StockMovementRequestDTO movementRequest = buildMovementRequest(
+                    products,
+                    locations,
+                    availableStocks,
+                    customerIds,
+                    supplierIds,
+                    minQuantity,
+                    maxQuantity
+            );
+
+            StockMovementResponseDTO created = stockMovementService.createMovement(movementRequest, email);
+            if (autoValidate) {
+                created = stockMovementService.validateMovement(created.getId(), email);
+                validated++;
+            }
+            movements.add(created);
+        }
+
+        return new MovementSimulationResponseDTO(count, movements.size(), validated, movements);
+    }
+
+    private StockMovementRequestDTO buildMovementRequest(
+            List<Product> products,
+            List<Location> locations,
+            List<Stock> availableStocks,
+            List<Long> customerIds,
+            List<Long> supplierIds,
+            long minQuantity,
+            long maxQuantity
+    ) {
+        MovementType movementType = chooseMovementType(availableStocks, locations);
+        StockMovementRequestDTO dto = new StockMovementRequestDTO();
+        dto.setMovementType(movementType);
+        dto.setQuantity(randomQuantity(minQuantity, maxQuantity));
+        dto.setNotes("Generated by movement simulator");
+
+        if (movementType == MovementType.IN) {
+            Product product = randomItem(products);
+            Location toLocation = randomItem(locations);
+            dto.setProductId(product.getId());
+            dto.setToLocationId(toLocation.getId());
+            dto.setMovementReason(randomItem(List.of(
+                    MovementReason.SUPPLIER_RECEIPT,
+                    MovementReason.CUSTOMER_RETURN,
+                    MovementReason.INCOMING_TRANSFER
+            )));
+            dto.setDestinationType(DestinationType.WAREHOUSE);
+            dto.setDestinationId(toLocation.getWarehouse().getId());
+            return dto;
+        }
+
+        Stock sourceStock = randomItem(availableStocks);
+        dto.setProductId(sourceStock.getProduct().getId());
+        dto.setFromLocationId(sourceStock.getLocation().getId());
+        dto.setQuantity(Math.min(dto.getQuantity(), sourceStock.getQuantity()));
+
+        if (movementType == MovementType.OUT) {
+            setOutboundDestination(dto, sourceStock, customerIds, supplierIds);
+            return dto;
+        }
+
+        Location toLocation = randomDifferentLocation(locations, sourceStock.getLocation().getId());
+        dto.setToLocationId(toLocation.getId());
+        dto.setMovementReason(MovementReason.INTERNAL_TRANSFER);
+        dto.setDestinationType(DestinationType.WAREHOUSE);
+        dto.setDestinationId(toLocation.getWarehouse().getId());
+        return dto;
+    }
+
+    private void setOutboundDestination(
+            StockMovementRequestDTO dto,
+            Stock sourceStock,
+            List<Long> customerIds,
+            List<Long> supplierIds
+    ) {
+        if (!customerIds.isEmpty() && !supplierIds.isEmpty()) {
+            if (random.nextBoolean()) {
+                setCustomerShipment(dto, customerIds);
+            } else {
+                setSupplierReturn(dto, supplierIds);
+            }
+            return;
+        }
+        if (!customerIds.isEmpty()) {
+            setCustomerShipment(dto, customerIds);
+            return;
+        }
+        if (!supplierIds.isEmpty()) {
+            setSupplierReturn(dto, supplierIds);
+            return;
+        }
+
+        dto.setMovementReason(MovementReason.OUTGOING_TRANSFER);
+        dto.setDestinationType(DestinationType.WAREHOUSE);
+        dto.setDestinationId(sourceStock.getLocation().getWarehouse().getId());
+    }
+
+    private void setCustomerShipment(StockMovementRequestDTO dto, List<Long> customerIds) {
+        dto.setMovementReason(MovementReason.CUSTOMER_SHIPMENT);
+        dto.setDestinationType(DestinationType.CUSTOMER);
+        dto.setDestinationId(randomItem(customerIds));
+    }
+
+    private void setSupplierReturn(StockMovementRequestDTO dto, List<Long> supplierIds) {
+        dto.setMovementReason(MovementReason.SUPPLIER_RETURN);
+        dto.setDestinationType(DestinationType.SUPPLIER);
+        dto.setDestinationId(randomItem(supplierIds));
+    }
+
+    private MovementType chooseMovementType(List<Stock> availableStocks, List<Location> locations) {
+        if (availableStocks.isEmpty()) {
+            return MovementType.IN;
+        }
+        if (locations.size() < 2) {
+            return randomItem(List.of(MovementType.IN, MovementType.OUT));
+        }
+        return randomItem(List.of(MovementType.IN, MovementType.OUT, MovementType.TRANSFER));
+    }
+
+    private Location randomDifferentLocation(List<Location> locations, Long sourceLocationId) {
+        List<Location> candidates = locations.stream()
+                .filter(location -> !location.getId().equals(sourceLocationId))
+                .toList();
+        return randomItem(candidates);
+    }
+
+    private int normalizeCount(Integer count) {
+        if (count == null || count < 1) {
+            return 1;
+        }
+        return Math.min(count, MAX_COUNT);
+    }
+
+    private long normalizeMinQuantity(Long minQuantity) {
+        if (minQuantity == null || minQuantity < 1) {
+            return 1L;
+        }
+        return minQuantity;
+    }
+
+    private long normalizeMaxQuantity(Long maxQuantity, long minQuantity) {
+        if (maxQuantity == null || maxQuantity < minQuantity) {
+            return minQuantity;
+        }
+        return maxQuantity;
+    }
+
+    private long randomQuantity(long minQuantity, long maxQuantity) {
+        return minQuantity + random.nextLong(maxQuantity - minQuantity + 1);
+    }
+
+    private <T> T randomItem(List<T> items) {
+        return items.get(random.nextInt(items.size()));
+    }
+}
