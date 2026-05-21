@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.zaxxer.hikari.HikariDataSource;
+
 import javax.sql.DataSource;
 @Configuration
 public class HiveConfig {
@@ -14,10 +16,14 @@ public class HiveConfig {
     @Bean(name = "hiveDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.hive")
     public DataSource hiveDataSource() {
-        return DataSourceBuilder.create()
+        HikariDataSource dataSource = DataSourceBuilder.create()
+                .type(HikariDataSource.class)
                 .url("jdbc:hive2://localhost:10000/default")
                 .driverClassName("org.apache.hive.jdbc.HiveDriver")
                 .build();
+        dataSource.setMaximumPoolSize(1);
+        dataSource.setMinimumIdle(0);
+        return dataSource;
     }
 
     @Bean(name = "hiveJdbcTemplate")

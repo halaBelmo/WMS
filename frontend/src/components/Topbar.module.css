@@ -19,6 +19,12 @@
   gap: 0.8rem;
 }
 
+.identityText {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+}
+
 .avatar {
   width: 40px;
   height: 40px;
@@ -37,12 +43,6 @@
   font-size: 14px;
   color: var(--color-text-primary);
   font-weight: 600;
-}
-
-.title {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  font-weight: 500;
 }
 
 .actions {

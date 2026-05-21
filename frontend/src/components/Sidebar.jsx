@@ -50,7 +50,11 @@ export default function Sidebar() {
 
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.brand}>WMS Panel</div>
+      <div className={styles.brand}>
+        <div className={styles.brandCard}>
+          <img src="/Logo.JPG" alt="WMS logo" className={styles.brandLogo} />
+        </div>
+      </div>
       <nav className={styles.nav}>
         {visibleLinks.map((link) => (
           <NavLink

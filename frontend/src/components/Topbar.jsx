@@ -24,9 +24,8 @@ export default function Topbar() {
     <header className={styles.topbar}>
       <div className={styles.identity}>
         <span className={styles.avatar}>{initials || "U"}</span>
-        <div>
+        <div className={styles.identityText}>
           <p className={styles.welcome}>Welcome back, {userName}</p>
-          <h2 className={styles.title}>WMS Panel</h2>
         </div>
       </div>
 
