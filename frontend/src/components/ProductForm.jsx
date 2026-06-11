@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Button from "./Button";
 import styles from "./ProductForm.module.css";
 import api from "../services/api";
 
@@ -11,6 +10,7 @@ export default function ProductForm({
   isEditing,
   isSubmitting,
   error,
+  onSuppliersLoaded,
 }) {
   const [suppliers, setSuppliers] = useState([]);
 
@@ -18,36 +18,36 @@ export default function ProductForm({
     const loadSuppliers = async () => {
       try {
         const response = await api.get("/api/owner/suppliers");
-        setSuppliers(response.data || []);
+        const list = Array.isArray(response.data) ? response.data : [];
+        setSuppliers(list);
+        if (typeof onSuppliersLoaded === "function") {
+          onSuppliersLoaded(list);
+        }
       } catch (err) {
         console.error("Failed to load suppliers", err);
+        if (typeof onSuppliersLoaded === "function") {
+          onSuppliersLoaded([]);
+        }
       }
     };
     loadSuppliers();
-  }, []);
+  }, [onSuppliersLoaded]);
 
   return (
     <form className={styles.card} onSubmit={onSubmit}>
-      <h3 className={styles.title}>{isEditing ? "Update Product" : "Create Product"}</h3>
+      <div className={styles.header}>
+        <h3 className={styles.title}>{isEditing ? "Update Product" : "Create Product"}</h3>
+        <p className={styles.subtitle}>Create product records for warehouse catalog and stock workflows.</p>
+      </div>
 
       <div className={styles.grid}>
         <div className={styles.field}>
-          <label>Name</label>
+          <label>Product Name</label>
           <input
             value={form.name}
             onChange={(e) => onChange("name", e.target.value)}
             placeholder="Product name"
             required
-          />
-        </div>
-
-        <div className={styles.field}>
-          <label>Description</label>
-          <textarea
-            value={form.description}
-            onChange={(e) => onChange("description", e.target.value)}
-            placeholder="Product description"
-            rows={3}
           />
         </div>
 
@@ -78,19 +78,27 @@ export default function ProductForm({
             ))}
           </select>
         </div>
+
+        <div className={`${styles.field} ${styles.descriptionField}`}>
+          <label>Description</label>
+          <textarea
+            value={form.description}
+            onChange={(e) => onChange("description", e.target.value)}
+            placeholder="Short product description"
+            rows={3}
+          />
+        </div>
       </div>
 
       {error ? <p className={styles.error}>{error}</p> : null}
 
       <div className={styles.actions}>
-        <Button type="submit" fullWidth={false} disabled={isSubmitting}>
+        <button type="submit" className={styles.primaryBtn} disabled={isSubmitting}>
           {isSubmitting ? "Saving..." : isEditing ? "Update Product" : "Create Product"}
-        </Button>
-        {isEditing ? (
-          <Button type="button" variant="outline" fullWidth={false} onClick={onCancel}>
-            Cancel
-          </Button>
-        ) : null}
+        </button>
+        <button type="button" className={styles.secondaryBtn} onClick={onCancel}>
+          Reset
+        </button>
       </div>
     </form>
   );

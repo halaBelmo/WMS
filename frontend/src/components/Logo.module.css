@@ -1,38 +1,12 @@
 .logoArea {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 1.75rem;
+  display: block;
+  margin-bottom: 2rem;
 }
 
-.logoBox {
-  width: 34px;
-  height: 34px;
-  background: var(--color-primary);
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.logoTextWrap {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.1;
-}
-
-.logoText {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-text-primary);
-  letter-spacing: -0.02em;
-}
-
-.logoTag {
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--color-text-tertiary);
-  letter-spacing: 0.02em;
+.logoImage {
+  display: block;
+  height: clamp(200px, 8vw, 200px);
+  width: auto;
+  max-width: min(100%, 320px);
+  object-fit: contain;
 }

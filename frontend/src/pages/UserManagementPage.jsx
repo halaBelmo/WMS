@@ -1,5 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
-import PageHeader from "../components/PageHeader";
+import { useEffect, useMemo, useRef, useState } from "react";
 import UserForm from "../components/UserForm";
 import UserTable from "../components/UserTable";
 import { useAuth } from "../context/AuthContext";
@@ -27,20 +26,15 @@ function normalizeWarehouses(data) {
 }
 
 function getRolesFor(currentRole) {
-  if (currentRole === "OWNER") {
-    return ["ADMIN", "MAGASINIER"];
-  }
-
-  if (currentRole === "ADMIN") {
-    return ["MAGASINIER"];
-  }
-
+  if (currentRole === "OWNER") return ["ADMIN", "MAGASINIER"];
+  if (currentRole === "ADMIN") return ["MAGASINIER"];
   return [];
 }
 
 export default function UserManagementPage() {
   const { user } = useAuth();
   const currentRole = user?.role;
+  const formRef = useRef(null);
 
   const roles = useMemo(() => getRolesFor(currentRole), [currentRole]);
   const ownerMode = currentRole === "OWNER";
@@ -122,6 +116,11 @@ export default function UserManagementPage() {
     setFormError("");
   };
 
+  const handleStartCreate = () => {
+    resetForm();
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const handleFieldChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -131,14 +130,9 @@ export default function UserManagementPage() {
     setSaving(true);
     setFormError("");
 
-    const payload = {
-      name: form.name,
-      email: form.email,
-    };
+    const payload = { name: form.name, email: form.email };
 
-    if (form.password) {
-      payload.password = form.password;
-    }
+    if (form.password) payload.password = form.password;
 
     if (!editingId) {
       payload.roleName = form.role;
@@ -186,10 +180,7 @@ export default function UserManagementPage() {
     const targetWarehouseId = String(targetUser.warehouseId || "");
 
     setEditingId(targetUser.id);
-    setEditingSnapshot({
-      role: targetUser.role || "",
-      warehouseId: targetWarehouseId,
-    });
+    setEditingSnapshot({ role: targetUser.role || "", warehouseId: targetWarehouseId });
     setForm({
       name: targetUser.name || "",
       email: targetUser.email || "",
@@ -198,6 +189,7 @@ export default function UserManagementPage() {
       warehouseId: targetWarehouseId,
     });
     setFormError("");
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleDelete = async (targetUser) => {
@@ -217,36 +209,59 @@ export default function UserManagementPage() {
     }
   };
 
+  const totalUsers = users.length;
+  const adminsCount = users.filter((item) => item.role === "ADMIN").length;
+  const staffCount = users.filter((item) => item.role === "MAGASINIER").length;
+
   return (
     <section className={styles.page}>
-      <PageHeader
-        title="User Management"
-        subtitle="Create and manage users based on your role permissions."
-      />
+      <section className={styles.hero}>
+        <div>
+          <h1 className={styles.title}>User Management</h1>
+          <p className={styles.subtitle}>Manage warehouse users, permissions, and access control.</p>
+        </div>
 
-      <UserForm
-        form={form}
-        roles={roles}
-        warehouses={warehouses}
-        showWarehouseSelect={ownerMode}
-        onChange={handleFieldChange}
-        onSubmit={handleSubmit}
-        onCancel={resetForm}
-        isEditing={Boolean(editingId)}
-        isSubmitting={saving || loadingWarehouses}
-        error={formError}
-        currentWarehouseName={user?.warehouseName}
-      />
+        <div className={styles.heroRight}>
+          <button type="button" className={styles.createButton} onClick={handleStartCreate}>
+            <span className={styles.plus}>+</span>
+            Create User
+          </button>
+
+          <div className={styles.badges}>
+            <span className={styles.statBadge}><strong>{totalUsers}</strong> Total Users</span>
+            <span className={styles.statBadge}><strong>{adminsCount}</strong> Admins</span>
+            <span className={styles.statBadge}><strong>{staffCount}</strong> Warehouse Staff</span>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.formSection} ref={formRef}>
+        <UserForm
+          form={form}
+          roles={roles}
+          warehouses={warehouses}
+          showWarehouseSelect={ownerMode}
+          onChange={handleFieldChange}
+          onSubmit={handleSubmit}
+          onCancel={resetForm}
+          isEditing={Boolean(editingId)}
+          isSubmitting={saving || loadingWarehouses}
+          error={formError}
+          currentWarehouseName={user?.warehouseName}
+        />
+      </section>
 
       {error ? <p className={styles.error}>{error}</p> : null}
 
-      <UserTable
-        users={users}
-        loading={loadingUsers}
-        deletingId={deletingId}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      <section className={styles.tableSection}>
+        <UserTable
+          users={users}
+          loading={loadingUsers}
+          deletingId={deletingId}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+        />
+      </section>
     </section>
   );
 }

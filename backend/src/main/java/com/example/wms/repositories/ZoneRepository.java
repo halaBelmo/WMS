@@ -14,6 +14,7 @@ import com.example.wms.entities.Zone;
 public interface ZoneRepository extends JpaRepository<Zone, Long> {
     List<Zone> findByWarehouseId(Long warehouseId);
     List<Zone> findByWarehouse_Id(Long warehouseId);
+    List<Zone> findByWarehouse_Company_Id(Long companyId);
     Optional<Zone> findByIdAndWarehouseId(Long id, Long warehouseId);
 }
 

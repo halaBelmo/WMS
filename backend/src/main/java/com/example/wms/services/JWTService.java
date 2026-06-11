@@ -30,7 +30,7 @@ public class JWTService {
 
         claims.put("role", user.getRole().getName().name());
         claims.put("companyId", user.getCompany().getId());
-        
+
 
         return Jwts.builder()
                 .setClaims(claims)
@@ -43,33 +43,33 @@ public class JWTService {
                 .compact();
     }
 
-        private Key getKey() {
+    private Key getKey() {
 
-            byte[] keyBytes = Decoders.BASE64.decode(secretKey);
-            return Keys.hmacShaKeyFor(keyBytes);
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        return Keys.hmacShaKeyFor(keyBytes);
 
     }
 
     public String extractEmail(String token) {
-    if (token == null || token.isBlank()) {
-        return null;
+        if (token == null || token.isBlank()) {
+            return null;
+        }
+
+        return Jwts.parserBuilder()
+                .setSigningKey(getKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getSubject();
     }
 
-    return Jwts.parserBuilder()
-            .setSigningKey(getKey())
-            .build()
-            .parseClaimsJws(token)
-            .getBody()
-            .getSubject();
-}
-
     public boolean validateToken(String token, UserDetails userDetails) {
-       final String email = extractEmail(token);
-       return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        final String email = extractEmail(token);
+        return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
 
-}
+    }
     public boolean isTokenExpired(String token) {
-       return extractExpiration(token).before(new Date());
+        return extractExpiration(token).before(new Date());
     }
 
     public Date extractExpiration(String token) {

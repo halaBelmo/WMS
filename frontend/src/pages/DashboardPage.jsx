@@ -1,19 +1,19 @@
-﻿import DashboardCard from "../components/DashboardCard";
-import PageHeader from "../components/PageHeader";
+import DashboardCard from "../components/DashboardCard";
 import WarehouseTree from "../components/WarehouseTree";
-import { useAuth } from "../context/AuthContext";
 import styles from "./DashboardPage.module.css";
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-
   return (
     <section className={styles.page}>
-      <PageHeader
-        title="Dashboard"
-        subtitle="Overview of your connected account information."
-      />
-      <DashboardCard user={user} />
+      <section className={styles.hero}>
+        <div className={styles.badge}>WMS Admin Panel</div>
+        <h1 className={styles.title}>Dashboard</h1>
+        <p className={styles.subtitle}>
+          Overview of your warehouse, company, and account activity.
+        </p>
+      </section>
+
+      <DashboardCard />
       <WarehouseTree />
     </section>
   );

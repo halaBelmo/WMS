@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import Button from "../components/Button";
-import PageHeader from "../components/PageHeader";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import styles from "./StockMovementPage.module.css";
@@ -33,10 +32,11 @@ const initialForm = {
   notes: "",
 };
 
-const initialSimulationForm = {
-  count: 10,
-  minQuantity: 1,
-  maxQuantity: 20,
+const initialFilters = {
+  product: "",
+  movementType: "",
+  createdBy: "",
+  date: "",
 };
 
 function extractList(data) {
@@ -50,9 +50,7 @@ function extractList(data) {
 function mapNameOptions(data, fallbackPrefix) {
   return extractList(data)
     .map((item) => ({
-      id: String(
-        item.id ?? item.productId ?? item.supplierId ?? item.warehouseId ?? item.customerId
-      ),
+      id: String(item.id ?? item.productId ?? item.supplierId ?? item.warehouseId ?? item.customerId),
       name:
         item.code ||
         item.productCode ||
@@ -73,6 +71,7 @@ function mapLocationOptions(data) {
   return extractList(data)
     .map((item) => ({
       id: String(item.id ?? item.locationId),
+      warehouseId: String(item.warehouseId ?? item.warehouse?.id ?? ""),
       code: item.code || item.locationCode || "",
       name:
         item.name ||
@@ -114,6 +113,7 @@ function mapStockEntries(data) {
     .map((item) => ({
       productId: String(item.productId ?? item.product?.id ?? ""),
       locationId: String(item.locationId ?? item.location?.id ?? ""),
+      warehouseId: String(item.warehouseId ?? item.location?.warehouseId ?? item.location?.warehouse?.id ?? ""),
       locationCode: item.locationCode || item.location?.code || "",
       locationName:
         item.locationName ||
@@ -137,6 +137,13 @@ function mapPendingMovements(data) {
     movementReason: item.movementReason || "-",
     destinationType: item.destinationType || "-",
     destinationId: item.destinationId ?? null,
+    destinationName:
+      item.destinationName ||
+      item.destination?.name ||
+      item.supplierName ||
+      item.customerName ||
+      item.warehouseName ||
+      "",
     status: item.status || "PENDING",
     createdBy: item.createdBy || "-",
     createdAt: item.createdAt || null,
@@ -144,25 +151,111 @@ function mapPendingMovements(data) {
   }));
 }
 
+function readEntityName(entity) {
+  if (!entity || typeof entity !== "object") return "";
+  return (
+    entity.name ||
+    entity.supplierName ||
+    entity.customerName ||
+    entity.warehouseName ||
+    entity.code ||
+    entity.supplierCode ||
+    entity.customerCode ||
+    entity.warehouseCode ||
+    ""
+  );
+}
+
+function findEntityNameById(data, targetId) {
+  const idStr = String(targetId ?? "");
+  const list = extractList(data);
+  const found = list.find((item) => {
+    const candidate = item?.id ?? item?.supplierId ?? item?.customerId ?? item?.warehouseId;
+    return String(candidate ?? "") === idStr;
+  });
+  return readEntityName(found);
+}
+
+function destinationKey(destinationType, destinationId) {
+  return `${destinationType}:${destinationId}`;
+}
+
+function isIdFallbackLabel(destinationType, destinationId, label) {
+  const value = String(label || "").trim().toLowerCase();
+  const id = String(destinationId || "").trim().toLowerCase();
+  if (!value || !id) return false;
+
+  if (value === id || value === `#${id}`) return true;
+
+  const prefixByType = {
+    SUPPLIER: "supplier",
+    CUSTOMER: "customer",
+    WAREHOUSE: "warehouse",
+  };
+
+  const prefix = prefixByType[String(destinationType || "").toUpperCase()];
+  if (!prefix) return false;
+
+  return value === `${prefix} ${id}` || value === `${prefix} #${id}`;
+}
+
 async function fetchFirstSuccessful(paths) {
   for (const path of paths) {
     try {
       const response = await api.get(path);
       return response.data;
-    } catch (error) {
+    } catch {
       // try next path
     }
   }
   throw new Error("All candidate endpoints failed");
 }
 
+function Icon({ type }) {
+  const common = { width: 14, height: 14, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.9", strokeLinecap: "round", strokeLinejoin: "round" };
+
+  if (type === "check") return <svg {...common}><path d="M20 6 9 17l-5-5" /></svg>;
+  if (type === "x") return <svg {...common}><path d="m18 6-12 12M6 6l12 12" /></svg>;
+  if (type === "clock") return <svg {...common}><circle cx="12" cy="12" r="9" /><path d="M12 7v6l4 2" /></svg>;
+  return <svg {...common}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /></svg>;
+}
+
+function typeClass(type) {
+  if (type === "IN") return styles.typeIn;
+  if (type === "OUT") return styles.typeOut;
+  return styles.typeTransfer;
+}
+
+function statusClass(status) {
+  if (status === "VALIDATED") return styles.statusValidated;
+  if (status === "REJECTED") return styles.statusRejected;
+  return styles.statusPending;
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  return new Date(value).toLocaleString();
+}
+
+function sameDay(isoDate, filterDate) {
+  if (!isoDate || !filterDate) return true;
+  const d = new Date(isoDate);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}` === filterDate;
+}
+
 export default function StockMovementPage() {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
+  const currentWarehouseId = String(user?.warehouseId ?? user?.warehouse?.id ?? "");
+  const shouldScopeToUserWarehouse = role === "MAGASINIER";
   const canCreateMovement = role === "MAGASINIER";
   const canReviewMovements = role === "ADMIN";
 
   const [form, setForm] = useState(initialForm);
-  const [simulationForm, setSimulationForm] = useState(initialSimulationForm);
+  const [filters, setFilters] = useState(initialFilters);
+  const [appliedFilters, setAppliedFilters] = useState(initialFilters);
 
   const [products, setProducts] = useState([]);
   const [allLocations, setAllLocations] = useState([]);
@@ -172,32 +265,26 @@ export default function StockMovementPage() {
   const [customers, setCustomers] = useState([]);
 
   const [pendingMovements, setPendingMovements] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
+  const [resolvedDestinationNames, setResolvedDestinationNames] = useState({});
 
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [loadingPending, setLoadingPending] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [simulating, setSimulating] = useState(false);
   const [actionLoading, setActionLoading] = useState({ id: null, type: "" });
 
   const [formError, setFormError] = useState("");
   const [listError, setListError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const showFromLocation =
-    form.movementType === "OUT" || form.movementType === "TRANSFER";
+  const showFromLocation = form.movementType === "OUT" || form.movementType === "TRANSFER";
   const showToLocation = form.movementType === "IN" || form.movementType === "TRANSFER";
-  const showPartySelector =
-    form.movementType === "OUT" || form.movementType === "IN";
-  const movementReasonOptions = useMemo(
-    () => reasonByMovementType[form.movementType] || [],
-    [form.movementType]
-  );
+  const showPartySelector = form.movementType === "OUT" || form.movementType === "IN";
+  const movementReasonOptions = useMemo(() => reasonByMovementType[form.movementType] || [], [form.movementType]);
   const partyTypeLabel = form.movementType === "IN" ? "From Type" : "Destination Type";
   const partyLabel = form.movementType === "IN" ? "From" : "Destination";
-  const partyPlaceholder =
-    form.movementType === "IN" ? "Select from" : "Select destination";
-  const forcedDestinationType =
-    forcedDestinationTypeByReason[form.movementReason] || "";
+  const partyPlaceholder = form.movementType === "IN" ? "Select from" : "Select destination";
+  const forcedDestinationType = forcedDestinationTypeByReason[form.movementReason] || "";
   const allowedDestinationTypes = forcedDestinationType
     ? [forcedDestinationType]
     : canCreateMovement
@@ -241,6 +328,7 @@ export default function StockMovementPage() {
 
   const toLocationOptions = useMemo(() => {
     if (!showToLocation || !form.productId) return [];
+
     const productLocations = (() => {
       const unique = new Map();
       stocks
@@ -289,8 +377,71 @@ export default function StockMovementPage() {
   const getDestinationLabel = (destinationType, destinationId) => {
     if (!destinationType || !destinationId) return "-";
     const map = destinationMaps[destinationType];
-    if (!map) return `#${destinationId}`;
-    return map.get(String(destinationId)) || `#${destinationId}`;
+    if (!map) return "";
+    return map.get(String(destinationId)) || "";
+  };
+
+  const resolveDestinationName = async (destinationType, destinationId) => {
+    if (!destinationType || !destinationId) return "";
+
+    const mapped = getDestinationLabel(destinationType, destinationId);
+    if (mapped && !isIdFallbackLabel(destinationType, destinationId, mapped)) return mapped;
+
+    const id = String(destinationId);
+    const type = String(destinationType).toUpperCase();
+
+    const detailPathsByType = {
+      SUPPLIER: [`/api/owner/suppliers/${id}`],
+      CUSTOMER: [`/api/owner/customers/${id}`, `/api/customers/${id}`],
+      WAREHOUSE: [`/api/owner/warehouses/${id}`],
+    };
+
+    const listPathsByType = {
+      SUPPLIER: ["/api/owner/suppliers"],
+      CUSTOMER: ["/api/owner/customers", "/api/customers"],
+      WAREHOUSE: ["/api/owner/warehouses"],
+    };
+
+    const detailPaths = detailPathsByType[type] || [];
+    for (const path of detailPaths) {
+      try {
+        const response = await api.get(path);
+        const fromDetail =
+          readEntityName(response.data) ||
+          readEntityName(response.data?.data) ||
+          findEntityNameById(response.data, id);
+        if (fromDetail) return fromDetail;
+      } catch {
+        // fallback to next endpoint
+      }
+    }
+
+    const listPaths = listPathsByType[type] || [];
+    if (!listPaths.length) return "";
+
+    try {
+      const listData = await fetchFirstSuccessful(listPaths);
+      return findEntityNameById(listData, id) || "";
+    } catch {
+      return "";
+    }
+  };
+
+  const getDestinationText = (movement) => {
+    if (!movement.destinationType || movement.destinationType === "-") return "-";
+
+    const directName = String(movement.destinationName || "").trim();
+    if (directName && !isIdFallbackLabel(movement.destinationType, movement.destinationId, directName)) {
+      return directName;
+    }
+
+    const mapped = getDestinationLabel(movement.destinationType, movement.destinationId);
+    if (mapped && !isIdFallbackLabel(movement.destinationType, movement.destinationId, mapped)) {
+      return mapped;
+    }
+
+    const resolved = resolvedDestinationNames[destinationKey(movement.destinationType, movement.destinationId)];
+    return resolved || "-";
   };
 
   const loadPendingMovements = async () => {
@@ -340,6 +491,18 @@ export default function StockMovementPage() {
           fetchFirstSuccessful(["/api/owner/customers", "/api/customers"]),
         ]);
 
+        const scopeByWarehouse = shouldScopeToUserWarehouse;
+        const scopedLocationList =
+          locationsResult.status === "fulfilled"
+            ? mapLocationOptions(locationsResult.value).filter((location) => {
+              if (!scopeByWarehouse) return true;
+              if (!currentWarehouseId) return false;
+              if (!location.warehouseId) return false;
+              return location.warehouseId === currentWarehouseId;
+            })
+            : [];
+        const scopedLocationIds = new Set(scopedLocationList.map((location) => location.id));
+
         if (productsResult.status === "fulfilled") {
           setProducts(mapNameOptions(productsResult.value, "Product"));
         } else {
@@ -348,25 +511,38 @@ export default function StockMovementPage() {
         }
 
         if (stocksResult.status === "fulfilled") {
-          setStocks(mapStockEntries(stocksResult.value));
+          const scopedStocks = mapStockEntries(stocksResult.value).filter((stock) => {
+            if (!scopeByWarehouse) return true;
+            if (!currentWarehouseId) return false;
+            if (stock.warehouseId) return stock.warehouseId === currentWarehouseId;
+            if (scopedLocationIds.size > 0) return scopedLocationIds.has(stock.locationId);
+            return false;
+          });
+          setStocks(scopedStocks);
         } else {
           setStocks([]);
         }
 
         const locationWarehousesFallback =
-          locationsResult.status === "fulfilled"
-            ? mapWarehouseOptionsFromLocations(locationsResult.value)
+          scopedLocationList.length
+            ? mapWarehouseOptionsFromLocations(scopedLocationList)
             : [];
 
         if (locationsResult.status === "fulfilled") {
-          setAllLocations(mapLocationOptions(locationsResult.value));
+          setAllLocations(scopedLocationList);
         } else {
           setAllLocations([]);
         }
 
         if (warehousesResult.status === "fulfilled") {
           const ownerWarehouses = mapNameOptions(warehousesResult.value, "Warehouse");
-          setWarehouses(ownerWarehouses.length ? ownerWarehouses : locationWarehousesFallback);
+          const scopedWarehouses =
+            scopeByWarehouse
+              ? currentWarehouseId
+                ? ownerWarehouses.filter((warehouse) => warehouse.id === currentWarehouseId)
+                : []
+              : ownerWarehouses;
+          setWarehouses(scopedWarehouses.length ? scopedWarehouses : locationWarehousesFallback);
         } else {
           setWarehouses(locationWarehousesFallback);
         }
@@ -382,7 +558,7 @@ export default function StockMovementPage() {
         } else {
           setCustomers([]);
         }
-      } catch (error) {
+      } catch {
         setFormError("Could not load movement form data. Please check API access.");
       } finally {
         setLoadingOptions(false);
@@ -391,7 +567,79 @@ export default function StockMovementPage() {
 
     loadOptions();
     loadPendingMovements();
-  }, [canCreateMovement, canReviewMovements]);
+  }, [canCreateMovement, canReviewMovements, shouldScopeToUserWarehouse, currentWarehouseId]);
+
+  useEffect(() => {
+    const loadDestinationReferencesForReview = async () => {
+      if (!canReviewMovements || canCreateMovement) return;
+      try {
+        const [warehousesData, suppliersData, customersData] = await Promise.all([
+          fetchFirstSuccessful(["/api/owner/warehouses"]),
+          fetchFirstSuccessful(["/api/owner/suppliers"]),
+          fetchFirstSuccessful(["/api/owner/customers", "/api/customers"]),
+        ]);
+
+        setWarehouses(mapNameOptions(warehousesData, "Warehouse"));
+        setSuppliers(mapNameOptions(suppliersData, "Supplier"));
+        setCustomers(mapNameOptions(customersData, "Customer"));
+      } catch {
+        // destination names will still resolve through per-destination detail fetch fallback
+      }
+    };
+
+    loadDestinationReferencesForReview();
+  }, [canReviewMovements, canCreateMovement]);
+
+  useEffect(() => {
+    const resolveMissingDestinations = async () => {
+      if (!canReviewMovements || !pendingMovements.length) return;
+
+      const unresolvedMovements = pendingMovements.filter((movement) => {
+        const hasDirect = String(movement.destinationName || "").trim();
+        if (hasDirect) return false;
+        if (!movement.destinationType || movement.destinationType === "-") return false;
+        if (!movement.destinationId) return false;
+
+        const alreadyMapped = getDestinationLabel(movement.destinationType, movement.destinationId);
+        if (
+          alreadyMapped &&
+          !isIdFallbackLabel(movement.destinationType, movement.destinationId, alreadyMapped)
+        ) {
+          return false;
+        }
+
+        return !resolvedDestinationNames[destinationKey(movement.destinationType, movement.destinationId)];
+      });
+
+      if (!unresolvedMovements.length) return;
+
+      const uniqueByKey = new Map();
+      unresolvedMovements.forEach((movement) => {
+        const key = destinationKey(movement.destinationType, movement.destinationId);
+        if (!uniqueByKey.has(key)) {
+          uniqueByKey.set(key, movement);
+        }
+      });
+
+      const entries = await Promise.all(
+        Array.from(uniqueByKey.values()).map(async (movement) => {
+          const key = destinationKey(movement.destinationType, movement.destinationId);
+          const name = await resolveDestinationName(movement.destinationType, movement.destinationId);
+          return [key, name];
+        })
+      );
+
+      setResolvedDestinationNames((prev) => {
+        const next = { ...prev };
+        entries.forEach(([key, name]) => {
+          if (name) next[key] = name;
+        });
+        return next;
+      });
+    };
+
+    resolveMissingDestinations();
+  }, [canReviewMovements, pendingMovements, resolvedDestinationNames, destinationMaps]);
 
   useEffect(() => {
     if (allowedDestinationTypes.includes(form.destinationType)) return;
@@ -480,53 +728,6 @@ export default function StockMovementPage() {
     setForm(initialForm);
   };
 
-  const handleSimulationFieldChange = (field, value) => {
-    setSimulationForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleRunSimulation = async (event) => {
-    event.preventDefault();
-    setSimulating(true);
-    setFormError("");
-    setSuccessMessage("");
-
-    const count = Number(simulationForm.count);
-    const minQuantity = Number(simulationForm.minQuantity);
-    const maxQuantity = Number(simulationForm.maxQuantity);
-
-    if (
-      !Number.isInteger(count) ||
-      count <= 0 ||
-      !Number.isInteger(minQuantity) ||
-      minQuantity <= 0 ||
-      !Number.isInteger(maxQuantity) ||
-      maxQuantity < minQuantity
-    ) {
-      setFormError("Please enter valid simulation values.");
-      setSimulating(false);
-      return;
-    }
-
-    try {
-      const response = await api.post("/api/simulator/movements", {
-        count,
-        minQuantity,
-        maxQuantity,
-        autoValidate: false,
-      });
-      const result = response.data || {};
-      setSuccessMessage(
-        `Simulation completed: ${result.created ?? 0} movements created${
-          result.validated ? `, ${result.validated} validated` : ""
-        }.`
-      );
-    } catch (requestError) {
-      setFormError(requestError.response?.data?.message || "Could not run movement simulation.");
-    } finally {
-      setSimulating(false);
-    }
-  };
-
   const handleCreateMovement = async (event) => {
     event.preventDefault();
     setSubmitting(true);
@@ -561,8 +762,19 @@ export default function StockMovementPage() {
     };
 
     try {
-      await api.post("/api/movements", payload);
-      setSuccessMessage("Movement created successfully.");
+      const response = await api.post("/api/movements", payload);
+      const createdMovement = mapPendingMovements([response.data])[0];
+      if (createdMovement) {
+        const enrichedMovement = {
+          ...createdMovement,
+          destinationName:
+            createdMovement.destinationName ||
+            getDestinationLabel(createdMovement.destinationType, createdMovement.destinationId) ||
+            "",
+        };
+        setMyRequests((prev) => [enrichedMovement, ...prev]);
+      }
+      setSuccessMessage("Movement request created successfully.");
       resetForm();
     } catch (requestError) {
       setFormError(requestError.response?.data?.message || "Could not create movement.");
@@ -603,328 +815,296 @@ export default function StockMovementPage() {
     }
   };
 
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSearch = () => {
+    setAppliedFilters(filters);
+  };
+
+  const handleResetFilters = () => {
+    setFilters(initialFilters);
+    setAppliedFilters(initialFilters);
+  };
+
+  const filteredMovements = useMemo(() => {
+    return pendingMovements.filter((movement) => {
+      if (
+        appliedFilters.product &&
+        !movement.productName.toLowerCase().includes(appliedFilters.product.toLowerCase())
+      ) {
+        return false;
+      }
+
+      if (appliedFilters.movementType && movement.movementType !== appliedFilters.movementType) {
+        return false;
+      }
+
+      if (
+        appliedFilters.createdBy &&
+        !movement.createdBy.toLowerCase().includes(appliedFilters.createdBy.toLowerCase())
+      ) {
+        return false;
+      }
+
+      if (appliedFilters.date && !sameDay(movement.createdAt, appliedFilters.date)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [pendingMovements, appliedFilters]);
+
+  const pendingCount = canCreateMovement
+    ? myRequests.filter((item) => item.status === "PENDING").length
+    : pendingMovements.filter((item) => item.status === "PENDING").length;
+  const totalMovements = canCreateMovement ? myRequests.length : pendingMovements.length;
+
+  const createdByOptions = Array.from(
+    new Set(pendingMovements.map((item) => item.createdBy).filter(Boolean))
+  );
+
   return (
     <section className={styles.page}>
-      <PageHeader
-        title="Stock Movements"
-        subtitle={
-          canCreateMovement
-            ? "Create stock movement requests."
-            : "Validate or reject pending stock movement requests."
-        }
-      />
+      <header className={styles.header}>
+        <div>
+          <h1 className={styles.title}>Movement Requests</h1>
+          <p className={styles.subtitle}>Create and track your warehouse stock movement requests.</p>
+        </div>
+        {canReviewMovements ? (
+          <div className={styles.indicators}>
+            <span className={styles.indicator}>
+              <Icon type="clock" />
+              Pending Requests: {pendingCount}
+            </span>
+            <span className={styles.indicator}>
+              <Icon type="box" />
+              Total Requests: {totalMovements}
+            </span>
+          </div>
+        ) : null}
+      </header>
 
       {canCreateMovement ? (
-        <>
         <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Movement Simulation</h3>
+          <h3 className={styles.sectionTitle}>Create Movement Request</h3>
 
-          <form className={styles.form} onSubmit={handleRunSimulation}>
-            <div className={styles.grid}>
-              <div className={styles.field}>
-                <label>Movements</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={simulationForm.count}
-                  onChange={(event) => handleSimulationFieldChange("count", event.target.value)}
-                  required
-                />
-              </div>
+          {loadingOptions ? <p className={styles.info}>Loading form options...</p> : null}
 
-              <div className={styles.field}>
-                <label>Min Quantity</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={simulationForm.minQuantity}
-                  onChange={(event) =>
-                    handleSimulationFieldChange("minQuantity", event.target.value)
-                  }
-                  required
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label>Max Quantity</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={simulationForm.maxQuantity}
-                  onChange={(event) =>
-                    handleSimulationFieldChange("maxQuantity", event.target.value)
-                  }
-                  required
-                />
-              </div>
-
-            </div>
-
-            <div className={styles.actions}>
-              <Button type="submit" fullWidth={false} disabled={simulating}>
-                {simulating ? "Simulating..." : "Run Simulation"}
-              </Button>
-            </div>
-          </form>
-        </div>
-
-        <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Create Movement</h3>
-
-        {loadingOptions ? <p className={styles.info}>Loading form options...</p> : null}
-
-        {!loadingOptions ? (
-          <form className={styles.form} onSubmit={handleCreateMovement}>
-            <div className={styles.grid}>
-              <div className={styles.field}>
-                <label>Product</label>
-                <select
-                  value={form.productId}
-                  onChange={(event) => handleFieldChange("productId", event.target.value)}
-                  required
-                >
-                  <option value="">Select product</option>
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.field}>
-                <label>Movement Type</label>
-                <select
-                  value={form.movementType}
-                  onChange={(event) => handleFieldChange("movementType", event.target.value)}
-                  required
-                >
-                  <option value="">Select movement type</option>
-                  {movementTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={styles.field}>
-                <label>Movement Reason</label>
-                <select
-                  value={form.movementReason}
-                  onChange={(event) => handleFieldChange("movementReason", event.target.value)}
-                  required
-                  disabled={!form.movementType}
-                >
-                  <option value="">
-                    {form.movementType ? "Select movement reason" : "Select movement type first"}
-                  </option>
-                  {movementReasonOptions.map((reason) => (
-                    <option key={reason} value={reason}>
-                      {reason}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {showFromLocation ? (
-                <div className={styles.field}>
-                  <label>From Location</label>
-                  <select
-                    value={form.fromLocationId}
-                    onChange={(event) => handleFieldChange("fromLocationId", event.target.value)}
-                    required={showFromLocation}
-                    disabled={!form.productId}
-                  >
-                    <option value="">
-                      {form.productId ? "Select from location" : "Select product first"}
-                    </option>
-                    {fromLocationOptions.map((location) => (
-                      <option key={location.id} value={location.id}>
-                        {location.code || location.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-
-              {showToLocation ? (
-                <div className={styles.field}>
-                  <label>To Location</label>
-                  <select
-                    value={form.toLocationId}
-                    onChange={(event) => handleFieldChange("toLocationId", event.target.value)}
-                    required={showToLocation}
-                    disabled={!form.productId}
-                  >
-                    <option value="">
-                      {form.productId ? "Select to location" : "Select product first"}
-                    </option>
-                    {toLocationOptions.map((location) => (
-                      <option key={location.id} value={location.id}>
-                        {location.code }
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : null}
-
-              <div className={styles.field}>
-                <label>Quantity</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={form.quantity}
-                  onChange={(event) => handleFieldChange("quantity", event.target.value)}
-                  placeholder="0"
-                  required
-                />
-              </div>
-
-              {showPartySelector ? (
-                <>
+          {!loadingOptions ? (
+            <form className={styles.form} onSubmit={handleCreateMovement}>
+              <section className={styles.stepSection}>
+                <div className={styles.stepTitle}><span>1</span> Step 1: Product & Quantity</div>
+                <div className={styles.grid}>
                   <div className={styles.field}>
-                    <label>{partyTypeLabel}</label>
-                    <select
-                      value={form.destinationType}
-                      onChange={(event) => handleFieldChange("destinationType", event.target.value)}
-                      required={showPartySelector}
-                      disabled={Boolean(forcedDestinationType)}
-                    >
-                      {allowedDestinationTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
+                    <label>Product</label>
+                    <select value={form.productId} onChange={(e) => handleFieldChange("productId", e.target.value)} required>
+                      <option value="">Select product</option>
+                      {products.map((product) => (
+                        <option key={product.id} value={product.id}>{product.name}</option>
                       ))}
                     </select>
                   </div>
 
                   <div className={styles.field}>
-                    <label>{partyLabel}</label>
-                    <select
-                      value={form.destinationId}
-                      onChange={(event) => handleFieldChange("destinationId", event.target.value)}
-                      required={showPartySelector}
-                    >
-                      <option value="">{partyPlaceholder}</option>
-                      {destinationOptions.map((destination) => (
-                        <option key={destination.id} value={destination.id}>
-                          {destination.name}
-                        </option>
+                    <label>Quantity</label>
+                    <input type="number" min="1" value={form.quantity} onChange={(e) => handleFieldChange("quantity", e.target.value)} placeholder="0" required />
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.stepSection}>
+                <div className={styles.stepTitle}><span>2</span> Step 2: Movement Details</div>
+                <div className={styles.grid}>
+                  <div className={styles.field}>
+                    <label>Movement Type</label>
+                    <select value={form.movementType} onChange={(e) => handleFieldChange("movementType", e.target.value)} required>
+                      <option value="">Select movement type</option>
+                      {movementTypes.map((type) => (
+                        <option key={type} value={type}>{type}</option>
                       ))}
                     </select>
                   </div>
-                </>
-              ) : null}
 
-              <div className={`${styles.field} ${styles.notesField}`}>
-                <label>Notes</label>
-                <textarea
-                  rows="3"
-                  value={form.notes}
-                  onChange={(event) => handleFieldChange("notes", event.target.value)}
-                  placeholder="Optional notes"
-                />
+                  <div className={styles.field}>
+                    <label>Movement Reason</label>
+                    <select value={form.movementReason} onChange={(e) => handleFieldChange("movementReason", e.target.value)} required disabled={!form.movementType}>
+                      <option value="">{form.movementType ? "Select movement reason" : "Select movement type first"}</option>
+                      {movementReasonOptions.map((reason) => (
+                        <option key={reason} value={reason}>{reason}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.stepSection}>
+                <div className={styles.stepTitle}><span>3</span> Step 3: Destination / Location</div>
+                <div className={styles.grid}>
+                  {showFromLocation ? (
+                    <div className={styles.field}>
+                      <label>From Location</label>
+                      <select value={form.fromLocationId} onChange={(e) => handleFieldChange("fromLocationId", e.target.value)} required={showFromLocation} disabled={!form.productId}>
+                        <option value="">{form.productId ? "Select from location" : "Select product first"}</option>
+                        {fromLocationOptions.map((location) => (
+                          <option key={location.id} value={location.id}>{location.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+
+                  {showToLocation ? (
+                    <div className={styles.field}>
+                      <label>To Location</label>
+                      <select value={form.toLocationId} onChange={(e) => handleFieldChange("toLocationId", e.target.value)} required={showToLocation} disabled={!form.productId}>
+                        <option value="">{form.productId ? "Select to location" : "Select product first"}</option>
+                        {toLocationOptions.map((location) => (
+                          <option key={location.id} value={location.id}>{location.label || location.code || location.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+
+                  {showPartySelector ? (
+                    <>
+                      <div className={styles.field}>
+                        <label>{partyTypeLabel}</label>
+                        <select value={form.destinationType} onChange={(e) => handleFieldChange("destinationType", e.target.value)} required disabled={Boolean(forcedDestinationType)}>
+                          {allowedDestinationTypes.map((type) => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className={styles.field}>
+                        <label>{partyLabel}</label>
+                        <select value={form.destinationId} onChange={(e) => handleFieldChange("destinationId", e.target.value)} required>
+                          <option value="">{partyPlaceholder}</option>
+                          {destinationOptions.map((destination) => (
+                            <option key={destination.id} value={destination.id}>{destination.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              </section>
+
+              <section className={styles.stepSection}>
+                <div className={styles.stepTitle}><span>4</span> Step 4: Notes</div>
+                <div className={styles.field}>
+                  <label>Optional Notes</label>
+                  <textarea rows="2" value={form.notes} onChange={(e) => handleFieldChange("notes", e.target.value)} placeholder="Optional notes for this movement request" />
+                </div>
+              </section>
+
+              {formError ? <p className={styles.error}>{formError}</p> : null}
+              {successMessage ? <p className={styles.success}>{successMessage}</p> : null}
+
+              <div className={styles.formActions}>
+                <Button type="submit" fullWidth={false} disabled={submitting}>{submitting ? "Submitting..." : "Create Movement Request"}</Button>
               </div>
-            </div>
-
-            {formError ? <p className={styles.error}>{formError}</p> : null}
-            {successMessage ? <p className={styles.success}>{successMessage}</p> : null}
-
-            <div className={styles.actions}>
-              <Button type="submit" fullWidth={false} disabled={submitting}>
-                {submitting ? "Submitting..." : "Create Movement"}
-              </Button>
-            </div>
-          </form>
-        ) : null}
+            </form>
+          ) : null}
         </div>
-        </>
       ) : null}
 
       {canReviewMovements ? (
         <div className={styles.card}>
-          <h3 className={styles.cardTitle}>Pending Movements</h3>
+          <h3 className={styles.sectionTitle}>Pending Movements</h3>
 
-        {listError ? <p className={styles.error}>{listError}</p> : null}
-
-        {loadingPending ? <p className={styles.info}>Loading pending movements...</p> : null}
-
-        {!loadingPending && !pendingMovements.length ? (
-          <p className={styles.info}>No pending movements found.</p>
-        ) : null}
-
-        {!loadingPending && pendingMovements.length ? (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Type</th>
-                  <th>Reason</th>
-                  <th>From Location</th>
-                  <th>To Location</th>
-                  <th>Destination Type</th>
-                  <th>Destination</th>
-                  <th>Quantity</th>
-                  <th>Status</th>
-                  <th>Created By</th>
-                  <th>Created At</th>
-                  <th>Notes</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pendingMovements.map((movement) => {
-                  const validating =
-                    actionLoading.id === movement.id && actionLoading.type === "validate";
-                  const rejecting =
-                    actionLoading.id === movement.id && actionLoading.type === "reject";
-
-                  return (
-                    <tr key={movement.id}>
-                      <td>{movement.productName}</td>
-                      <td>{movement.movementType}</td>
-                      <td>{movement.movementReason}</td>
-                      <td>{movement.fromLocationName}</td>
-                      <td>{movement.toLocationName}</td>
-                      <td>{movement.destinationType}</td>
-                    
-                      <td>{movement.quantity}</td>
-                      <td>{movement.status}</td>
-                      <td>{movement.createdBy}</td>
-                      <td>
-                        {movement.createdAt
-                          ? new Date(movement.createdAt).toLocaleString()
-                          : "-"}
-                      </td>
-                      <td>{movement.notes || "-"}</td>
-                      <td className={styles.rowActions}>
-                        <Button
-                          variant="outline"
-                          fullWidth={false}
-                          disabled={Boolean(actionLoading.id)}
-                          onClick={() => handleValidate(movement.id)}
-                        >
-                          {validating ? "Validating..." : "Validate"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          fullWidth={false}
-                          disabled={Boolean(actionLoading.id)}
-                          onClick={() => handleReject(movement.id)}
-                        >
-                          {rejecting ? "Rejecting..." : "Reject"}
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className={styles.filterBar}>
+            <input placeholder="Product" value={filters.product} onChange={(e) => handleFilterChange("product", e.target.value)} />
+            <select value={filters.movementType} onChange={(e) => handleFilterChange("movementType", e.target.value)}>
+              <option value="">Type</option>
+              {movementTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+            </select>
+            <select value={filters.createdBy} onChange={(e) => handleFilterChange("createdBy", e.target.value)}>
+              <option value="">Created By</option>
+              {createdByOptions.map((name) => <option key={name} value={name}>{name}</option>)}
+            </select>
+            <input type="date" value={filters.date} onChange={(e) => handleFilterChange("date", e.target.value)} />
+            <button type="button" className={styles.searchBtn} onClick={handleSearch}>Search</button>
+            <button type="button" className={styles.resetBtn} onClick={handleResetFilters}>Reset</button>
           </div>
-        ) : null}
+
+          {listError ? <p className={styles.error}>{listError}</p> : null}
+          {loadingPending ? <p className={styles.info}>Loading pending movements...</p> : null}
+
+          {!loadingPending && !filteredMovements.length ? (
+            <div className={styles.emptyState}>
+              <span className={styles.emptyIcon}><Icon type="box" /></span>
+              <p className={styles.emptyTitle}>No pending stock movements</p>
+              <p className={styles.emptyDesc}>New validation requests will appear here.</p>
+            </div>
+          ) : null}
+
+          {!loadingPending && filteredMovements.length ? (
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Type</th>
+                    <th>Reason</th>
+                    <th>Locations</th>
+                    <th>Destination</th>
+                    <th>Qty</th>
+                    <th>Status</th>
+                    <th>Created By</th>
+                    <th>Date</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMovements.map((movement) => {
+                    const validating = actionLoading.id === movement.id && actionLoading.type === "validate";
+                    const rejecting = actionLoading.id === movement.id && actionLoading.type === "reject";
+
+                    return (
+                      <tr key={movement.id}>
+                        <td>
+                          <p className={styles.productName}>{movement.productName}</p>
+                          <p className={styles.productId}>MV #{movement.id}</p>
+                        </td>
+                        <td><span className={`${styles.badge} ${typeClass(movement.movementType)}`}>{movement.movementType}</span></td>
+                        <td><span className={styles.reasonText}>{movement.movementReason}</span></td>
+                        <td>
+                          <p className={styles.locationText}>FROM: {movement.fromLocationName || "-"}</p>
+                          <p className={styles.locationText}>TO: {movement.toLocationName || "-"}</p>
+                        </td>
+                        <td className={styles.destinationText}>{getDestinationText(movement)}</td>
+                        <td className={styles.qty}>{movement.quantity}</td>
+                        <td><span className={`${styles.badge} ${statusClass(movement.status)}`}>{movement.status}</span></td>
+                        <td>
+                          <div className={styles.creator}>
+                            <span className={styles.creatorAvatar}>{movement.createdBy?.charAt(0)?.toUpperCase() || "U"}</span>
+                            <span>{movement.createdBy}</span>
+                          </div>
+                        </td>
+                        <td className={styles.dateCell}>{formatDate(movement.createdAt)}</td>
+                        <td><span className={styles.notes} title={movement.notes || "-"}>{movement.notes || "-"}</span></td>
+                        <td>
+                          <div className={styles.rowActions}>
+                            <button className={styles.validateBtn} disabled={Boolean(actionLoading.id)} onClick={() => handleValidate(movement.id)}>
+                              <Icon type="check" />
+                              {validating ? "Validating..." : "Validate"}
+                            </button>
+                            <button className={styles.rejectBtn} disabled={Boolean(actionLoading.id)} onClick={() => handleReject(movement.id)}>
+                              <Icon type="x" />
+                              {rejecting ? "Rejecting..." : "Reject"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>

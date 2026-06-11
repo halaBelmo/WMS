@@ -6,16 +6,7 @@ export default function Navbar({ activePage, onNavigate }) {
       <div className={styles.inner}>
         {/* Logo */}
         <div className={styles.brand}>
-          <div className={styles.logoBox}>
-            <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
-              <rect x="2" y="2" width="6" height="6" rx="1.5" fill="white" opacity="0.9" />
-              <rect x="10" y="2" width="6" height="6" rx="1.5" fill="white" opacity="0.6" />
-              <rect x="2" y="10" width="6" height="6" rx="1.5" fill="white" opacity="0.6" />
-              <rect x="10" y="10" width="6" height="6" rx="1.5" fill="white" opacity="0.3" />
-            </svg>
-          </div>
-          <span className={styles.brandName}>WMS</span>
-          <span className={styles.brandTag}>Warehouse</span>
+          <img src="/Logo.JPG" alt="WMS logo" className={styles.logoImage} />
         </div>
 
         {/* Nav links */}
